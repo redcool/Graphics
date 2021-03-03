@@ -294,7 +294,14 @@ namespace UnityEngine.Experimental.Rendering.Universal
                 var cmd = CommandBufferPool.Get();
                 using (new ProfilingScope(cmd, m_ProfilingSamplerUnlit))
                 {
-                    CoreUtils.SetRenderTarget(cmd, colorAttachment, depthAttachment, ClearFlag.None, Color.white);
+                    if (depthAttachment.nameID == BuiltinRenderTextureType.CameraTarget)
+                    {
+                        CoreUtils.SetRenderTarget(cmd, colorAttachment, ClearFlag.None, Color.white);
+                    }
+                    else
+                    {
+                        CoreUtils.SetRenderTarget(cmd, colorAttachment, depthAttachment, ClearFlag.None, Color.white);
+                    }
 
                     cmd.SetGlobalFloat(k_UseSceneLightingID, isLitView ? 1.0f : 0.0f);
                     cmd.SetGlobalColor(k_RendererColorID, Color.white);
