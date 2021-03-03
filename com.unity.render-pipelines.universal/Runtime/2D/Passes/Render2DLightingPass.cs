@@ -373,7 +373,14 @@ namespace UnityEngine.Experimental.Rendering.Universal
                 {
                     var msaaEnabled = renderingData.cameraData.cameraTargetDescriptor.msaaSamples > 1;
                     var storeAction = msaaEnabled ? RenderBufferStoreAction.Resolve : RenderBufferStoreAction.Store;
-                    cmd.SetRenderTarget(colorAttachment, RenderBufferLoadAction.Load, storeAction, depthAttachment, RenderBufferLoadAction.Load, storeAction);
+                    if (depthAttachment.nameID == BuiltinRenderTextureType.CameraTarget)
+                    {
+                        CoreUtils.SetRenderTarget(cmd, colorAttachment, RenderBufferLoadAction.Load, storeAction, ClearFlag.None, Color.clear);
+                    }
+                    else
+                    {
+                        CoreUtils.SetRenderTarget(cmd, colorAttachment, RenderBufferLoadAction.Load, storeAction, depthAttachment, RenderBufferLoadAction.Load, storeAction, ClearFlag.None, Color.clear);
+                    }
 
                     cmd.SetGlobalFloat(k_UseSceneLightingID, isLitView ? 1.0f : 0.0f);
                     cmd.SetGlobalColor(k_RendererColorID, Color.white);
