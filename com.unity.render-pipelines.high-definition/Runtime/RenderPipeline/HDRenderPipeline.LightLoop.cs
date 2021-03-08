@@ -220,32 +220,6 @@ namespace UnityEngine.Rendering.HighDefinition
             }
         }
 
-        class PushGlobalCameraParamPassData
-        {
-            public HDCamera                 hdCamera;
-            public ShaderVariablesGlobal    globalCB;
-            public ShaderVariablesXR        xrCB;
-        }
-
-        void PushGlobalCameraParams(RenderGraph renderGraph, HDCamera hdCamera)
-        {
-            using (var builder = renderGraph.AddRenderPass<PushGlobalCameraParamPassData>("Push Global Camera Parameters", out var passData))
-            {
-                passData.hdCamera = hdCamera;
-                passData.globalCB = m_ShaderVariablesGlobalCB;
-                passData.xrCB = m_ShaderVariablesXRCB;
-
-                builder.SetRenderFunc(
-                    (PushGlobalCameraParamPassData data, RenderGraphContext context) =>
-                    {
-                        data.hdCamera.UpdateShaderVariablesGlobalCB(ref data.globalCB);
-                        ConstantBuffer.PushGlobal(context.cmd, data.globalCB, HDShaderIDs._ShaderVariablesGlobal);
-                        data.hdCamera.UpdateShaderVariablesXRCB(ref data.xrCB);
-                        ConstantBuffer.PushGlobal(context.cmd, data.xrCB, HDShaderIDs._ShaderVariablesXR);
-                    });
-            }
-        }
-
         internal ShadowResult RenderShadows(RenderGraph renderGraph, HDCamera hdCamera, CullingResults cullResults, ref ShadowResult result)
         {
             m_ShadowManager.RenderShadows(m_RenderGraph, m_ShaderVariablesGlobalCB, hdCamera, cullResults, ref result);

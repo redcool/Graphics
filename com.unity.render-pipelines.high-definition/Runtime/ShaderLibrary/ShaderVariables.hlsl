@@ -156,6 +156,12 @@ TEXTURE2D(_PrevExposureTexture);
 
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariablesXR.cs.hlsl"
 
+#ifdef SAMPLE_TEXTURE2D
+#undef SAMPLE_TEXTURE2D
+#define SAMPLE_TEXTURE2D(textureName, samplerName, coord2) \
+    SAMPLE_TEXTURE2D_BIAS(textureName, samplerName, coord2,  _GlobalMipBias)
+#endif
+
 // Note: To sample camera depth in HDRP we provide these utils functions because the way we store the depth mips can change
 // Currently it's an atlas and it's layout can be found at ComputePackedMipChainInfo in HDUtils.cs
 float LoadCameraDepth(uint2 pixelCoords)

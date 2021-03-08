@@ -1870,6 +1870,9 @@ namespace UnityEngine.Rendering.HighDefinition
                         CustomPassVolume.Update(hdCamera);
                 }
 
+                if (m_CurrentDebugDisplaySettings != null && m_CurrentDebugDisplaySettings.data.UseDebugGlobalMipBiasOverride())
+                    hdCamera.GlobalMipBias = m_CurrentDebugDisplaySettings.data.GetDebugGlobalMipBiasOverride();
+
                 // Do anything we need to do upon a new frame.
                 // The NewFrame must be after the VolumeManager update and before Resize because it uses properties set in NewFrame
                 LightLoopNewFrame(cmd, hdCamera);

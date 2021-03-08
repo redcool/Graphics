@@ -302,6 +302,12 @@ namespace UnityEngine.Rendering.HighDefinition
         // XR multipass and instanced views are supported (see XRSystem)
         internal XRPass xr { get; private set; }
 
+        internal float GlobalMipBias { set; get; } = 0.0f;
+
+        internal void ResetGlobalMipBias() { GlobalMipBias = 0.0f; }
+
+        internal void SetGlobalMipBiasFromCamera() { GlobalMipBias = m_AdditionalCameraData == null ? 0.0f : m_AdditionalCameraData.materialMipBias; }
+
         internal float deltaTime => time - lastTime;
 
         // Non oblique projection matrix (RHS)
@@ -664,6 +670,8 @@ namespace UnityEngine.Rendering.HighDefinition
             // Inherit animation settings from the parent camera.
             Camera aniCam = (parentCamera != null) ? parentCamera : camera;
 
+            SetGlobalMipBiasFromCamera();
+
             // Different views/tabs may have different values of the "Animated Materials" setting.
             animateMaterials = CoreUtils.AreAnimatedMaterialsEnabled(aniCam);
             if (animateMaterials)
@@ -955,6 +963,7 @@ namespace UnityEngine.Rendering.HighDefinition
             cb._TaaFrameInfo = new Vector4(taaSharpenStrength, 0, taaFrameIndex, taaEnabled ? 1 : 0);
             cb._TaaJitterStrength = taaJitter;
             cb._ColorPyramidLodCount = colorPyramidHistoryMipCount;
+            cb._GlobalMipBias = GlobalMipBias;
 
             float ct = time;
             float pt = lastTime;
