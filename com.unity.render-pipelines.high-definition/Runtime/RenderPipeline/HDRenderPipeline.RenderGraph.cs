@@ -78,7 +78,15 @@ namespace UnityEngine.Rendering.HighDefinition
             lightingBuffers.diffuseLightingBuffer = CreateDiffuseLightingBuffer(m_RenderGraph, msaa);
             lightingBuffers.sssBuffer = CreateSSSBuffer(m_RenderGraph, msaa);
 
+            if (m_CurrentDebugDisplaySettings != null && m_CurrentDebugDisplaySettings.data.UseDebugGlobalMipBiasOverride())
+            {
+                float globalMaterialMipBias = m_CurrentDebugDisplaySettings.data.GetDebugGlobalMipBiasOverride();
+                PushCameraGlobalMipBias(m_RenderGraph, hdCamera, globalMaterialMipBias);
+            }
+
             var prepassOutput = RenderPrepass(m_RenderGraph, colorBuffer, lightingBuffers.sssBuffer, vtFeedbackBuffer, cullingResults, customPassCullingResults, hdCamera, aovRequest, aovBuffers);
+
+            PushCameraGlobalMipBias(m_RenderGraph, hdCamera, 0.0f);
 
             // Need this during debug render at the end outside of the main loop scope.
             // Once render graph move is implemented, we can probably remove the branch and this.
@@ -376,6 +384,35 @@ namespace UnityEngine.Rendering.HighDefinition
                         propertyBlock.SetFloat(HDShaderIDs._BlitMipLevel, 0);
                         propertyBlock.SetInt(HDShaderIDs._BlitTexArraySlice, data.srcTexArraySlice);
                         HDUtils.DrawFullScreen(context.cmd, data.viewport, data.blitMaterial, data.destination, propertyBlock, 0, data.dstTexArraySlice);
+                    });
+            }
+        }
+
+        class PushCameraGlobalMipBiasData
+        {
+            public HDCamera hdCamera;
+            public float mipBias;
+            public ShaderVariablesGlobal    globalCB;
+            public ShaderVariablesXR        xrCB;
+        }
+
+        void PushCameraGlobalMipBias(RenderGraph renderGraph, HDCamera hdCamera, float mipBias)
+        {
+            using (var builder = renderGraph.AddRenderPass<PushCameraGlobalMipBiasData>("Push Global Camera Mip Bias", out var passData))
+            {
+                passData.hdCamera = hdCamera;
+                passData.mipBias = mipBias;
+                passData.globalCB = m_ShaderVariablesGlobalCB;
+                passData.xrCB = m_ShaderVariablesXRCB;
+
+                builder.SetRenderFunc(
+                    (PushCameraGlobalMipBiasData data, RenderGraphContext context) =>
+                    {
+                        data.hdCamera.globalMipBias = data.mipBias;
+                        data.hdCamera.UpdateShaderVariablesGlobalCB(ref data.globalCB);
+                        ConstantBuffer.PushGlobal(context.cmd, data.globalCB, HDShaderIDs._ShaderVariablesGlobal);
+                        data.hdCamera.UpdateShaderVariablesXRCB(ref data.xrCB);
+                        ConstantBuffer.PushGlobal(context.cmd, data.xrCB, HDShaderIDs._ShaderVariablesXR);
                     });
             }
         }
