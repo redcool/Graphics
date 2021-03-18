@@ -20,7 +20,6 @@ namespace UnityEditor.Rendering.HighDefinition
 
                 public static readonly GUIContent depth = EditorGUIUtility.TrTextContent("Depth");
                 public static readonly GUIContent viewport = EditorGUIUtility.TrTextContent("Viewport Rect", "Four values that indicate where on the screen HDRP draws this Camera view. Measured in Viewport Coordinates (values in the range of [0, 1]).");
-                public static readonly GUIContent allowDynamicResolution = EditorGUIUtility.TrTextContent("Allow Dynamic Resolution", "Whether to support dynamic resolution.");
 
                 public const string msaaWarningMessage = "Manual MSAA target set with deferred rendering. This will lead to undefined behavior.";
             }

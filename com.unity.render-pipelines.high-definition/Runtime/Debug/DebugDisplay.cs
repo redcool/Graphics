@@ -199,6 +199,10 @@ namespace UnityEngine.Rendering.HighDefinition
             InlineCPU
         }
 
+#if ENABLE_NVIDIA_MODULE
+        internal UnityEngine.NVIDIA.DebugView nvidiaDebugView { get; } = new UnityEngine.NVIDIA.DebugView();
+#endif
+
         /// <summary>
         /// Debug data.
         /// </summary>
@@ -1804,6 +1808,11 @@ namespace UnityEngine.Rendering.HighDefinition
             {
                 widgetList.Add(new DebugUI.BoolField { displayName = "XR single-pass test mode", getter = () => data.xrSinglePassTestMode, setter = value => data.xrSinglePassTestMode = value });
             }
+
+
+#if ENABLE_NVIDIA_MODULE
+            widgetList.Add(nvidiaDebugView.CreateWidget());
+#endif
 
             m_DebugRenderingItems = widgetList.ToArray();
             var panel = DebugManager.instance.GetPanel(k_PanelRendering, true);

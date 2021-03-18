@@ -25,17 +25,10 @@ namespace UnityEditor.Rendering.HighDefinition
 #endif
                     Drawer_Output_RenderTarget,
                     Drawer_Output_MSAA_Warning,
-                    Drawer_Output_AllowDynamicResolution,
                     Drawer_Output_Depth,
                     Drawer_Output_NormalizedViewPort
                 )
             );
-
-            static void Drawer_Output_AllowDynamicResolution(SerializedHDCamera p, Editor owner)
-            {
-                EditorGUILayout.PropertyField(p.allowDynamicResolution, Styles.allowDynamicResolution);
-                p.baseCameraSettings.allowDynamicResolution.boolValue = p.allowDynamicResolution.boolValue;
-            }
 
             static void Drawer_Output_NormalizedViewPort(SerializedHDCamera p, Editor owner)
             {
