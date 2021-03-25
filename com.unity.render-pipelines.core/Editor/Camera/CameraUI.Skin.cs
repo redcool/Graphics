@@ -1,10 +1,10 @@
 using UnityEngine;
 
-namespace UnityEditor.Rendering.HighDefinition
+namespace UnityEditor.Rendering
 {
-    static partial class HDCameraUI
+    static partial class CameraUI
     {
-        class Styles
+        public class Styles
         {
             public static GUIContent projectionSettingsHeaderContent { get; } = EditorGUIUtility.TrTextContent("Projection");
 

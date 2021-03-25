@@ -334,6 +334,12 @@ namespace UnityEditor.Rendering.Universal
             }
 
             m_SerializedCamera.Update();
+
+            UniversalRenderPipelineCameraUI.Inspector.Draw(m_SerializedCamera, this);
+
+            m_SerializedCamera.Apply();
+
+            m_SerializedCamera.Update();
             UpdateAnimationValues(false);
 
             // Get the type of Camera we are using
@@ -662,6 +668,7 @@ namespace UnityEditor.Rendering.Universal
             var rendererData = selectedRendererOption == -1 ? rpAsset.m_RendererData : rpAsset.m_RendererDataList[selectedRendererOption];
 
             var fowardRendererData = rendererData as UniversalRendererData;
+            Debug.Log("fowardRendererData" + fowardRendererData);
             if (fowardRendererData != null && fowardRendererData.postProcessData == null)
                 return true;
 
