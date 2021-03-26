@@ -425,7 +425,7 @@ namespace UnityEditor.Rendering.Universal
 
             // Force same hdr
             bool allowHDR = settings.HDR.boolValue;
-            if (serializedCameraSettings.HDR.boolValue != allowHDR)
+            if (cam.allowHDR != allowHDR)
             {
                 cam.allowHDR = allowHDR;
                 isChanged = true;
