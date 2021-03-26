@@ -42,7 +42,7 @@ namespace UnityEditor.Rendering.Universal
                 if (index < 0 || index >= numCameras)
                     throw new ArgumentOutOfRangeException($"{index} is out of bounds [0 - {numCameras}]");
 
-                 // Return the camera on that index
+                // Return the camera on that index
                 return (cameras.GetArrayElementAtIndex(index).objectReferenceValue as Camera, cameraSerializedObjects[index]);
             }
         }

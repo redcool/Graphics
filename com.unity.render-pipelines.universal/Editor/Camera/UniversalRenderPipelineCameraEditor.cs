@@ -137,7 +137,7 @@ namespace UnityEditor.Rendering.Universal
             rect.height = EditorGUIUtility.singleLineHeight;
             rect.y += 1;
 
-            (Camera camera, UniversalRenderPipelineSerializedCamera serializedCamera) overlayCamera = m_SerializedCamera[index];
+            (Camera camera, UniversalRenderPipelineSerializedCamera serializedCamera)overlayCamera = m_SerializedCamera[index];
             if (overlayCamera.camera != null)
             {
                 bool typeError = false;
@@ -298,7 +298,7 @@ namespace UnityEditor.Rendering.Universal
 
             m_SerializedCamera.Refresh();
 
-            (Camera camera, UniversalRenderPipelineSerializedCamera serializedCamera) overlayCamera = m_SerializedCamera[length];
+            (Camera camera, UniversalRenderPipelineSerializedCamera serializedCamera)overlayCamera = m_SerializedCamera[length];
             UpdateStackCameraOutput(overlayCamera.camera, overlayCamera.serializedCamera);
         }
 
@@ -397,7 +397,7 @@ namespace UnityEditor.Rendering.Universal
             int cameraCount = m_SerializedCamera.cameras.arraySize;
             for (int i = 0; i < cameraCount; ++i)
             {
-                (Camera camera, UniversalRenderPipelineSerializedCamera serializedCamera) overlayCamera = m_SerializedCamera[i];
+                (Camera camera, UniversalRenderPipelineSerializedCamera serializedCamera)overlayCamera = m_SerializedCamera[i];
                 if (overlayCamera.camera != null)
                     UpdateStackCameraOutput(overlayCamera.camera, overlayCamera.serializedCamera);
             }
@@ -405,7 +405,7 @@ namespace UnityEditor.Rendering.Universal
 
         private void UpdateStackCameraOutput(Camera cam, UniversalRenderPipelineSerializedCamera serializedCamera)
         {
-            if ((CameraRenderType) serializedCamera.cameraType.intValue == CameraRenderType.Base)
+            if ((CameraRenderType)serializedCamera.cameraType.intValue == CameraRenderType.Base)
                 return;
 
             serializedCamera.Update();
