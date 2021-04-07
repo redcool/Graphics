@@ -24,7 +24,6 @@ namespace UnityEngine.Rendering.Universal
     {
         const DepthBits k_DepthStencilBufferBits = DepthBits.Depth32;
         static readonly string k_DepthNormalsOnly = "DepthNormalsOnly";
-        static readonly RTHandle k_CameraTarget = RTHandles.Alloc(BuiltinRenderTextureType.CameraTarget);
 
         // Rendering mode setup from UI.
         internal RenderingMode renderingMode { get { return m_RenderingMode;  } }
@@ -66,7 +65,9 @@ namespace UnityEngine.Rendering.Universal
 
         CameraAttachments m_ActiveCameraAttachments;
         CameraAttachments m_CameraAttachments;
-
+#if ENABLE_VR && ENABLE_XR_MODULE
+        RTHandle m_XRCameraTarget;
+#endif
         RTHandle m_DepthTexture;
         RTHandle m_NormalsTexture;
         RTHandle[] m_GBufferHandles;
@@ -336,6 +337,19 @@ namespace UnityEngine.Rendering.Universal
             ref CameraData cameraData = ref renderingData.cameraData;
             RenderTextureDescriptor cameraTargetDescriptor = renderingData.cameraData.cameraTargetDescriptor;
 
+            RTHandle cameraTarget = k_CameraTarget;
+#if ENABLE_VR && ENABLE_XR_MODULE
+            if (cameraData.xr.enabled)
+            {
+                if (m_XRCameraTarget?.nameID != cameraData.xr.renderTarget)
+                {
+                    m_XRCameraTarget?.Release();
+                    m_XRCameraTarget = RTHandles.Alloc(cameraData.xr.renderTarget);
+                }
+                cameraTarget = m_XRCameraTarget;
+            }
+#endif
+
             UpdateCameraAttachments(ref cameraTargetDescriptor);
 
             // Special path for depth only offscreen cameras. Only write opaques + transparents.
@@ -452,24 +466,17 @@ namespace UnityEngine.Rendering.Universal
             }
 #endif
 
-            if (usesRenderPass)
+            if (usesRenderPass || RTHandles.rtHandleProperties.rtHandleScale != Vector4.one)
             {
                 createDepthTexture |= createColorTexture;
                 createColorTexture = createDepthTexture;
             }
-            RTHandle cameraTarget = k_CameraTarget;
-#if ENABLE_VR && ENABLE_XR_MODULE
-            if (cameraData.xr.enabled)
-                cameraTarget = RTHandles.Alloc(cameraData.xr.renderTarget);
-#endif
 
-            // Doesn't create texture for Overlay cameras as they are already overlaying on top of created textures.
-            bool intermediateRenderTexture = createColorTexture || createDepthTexture;
             // Configure all settings require to start a new camera stack (base camera only)
-            if (cameraData.renderType == CameraRenderType.Base && intermediateRenderTexture)
+            if (cameraData.renderType == CameraRenderType.Base)
             {
                 m_ActiveCameraAttachments.color = createColorTexture ? m_CameraAttachments.color : cameraTarget;
-                m_ActiveCameraAttachments.depth = createDepthTexture ? m_CameraAttachments.depth : cameraTarget;
+                m_ActiveCameraAttachments.depth = (createColorTexture || createDepthTexture) ? m_CameraAttachments.depth : cameraTarget;
             }
             else
             {
@@ -748,8 +755,8 @@ namespace UnityEngine.Rendering.Universal
         /// <inheritdoc />
         public override void FinishRendering(CommandBuffer cmd)
         {
-            m_ActiveCameraAttachments.color = k_CameraTarget;
-            m_ActiveCameraAttachments.depth = k_CameraTarget;
+            m_ActiveCameraAttachments.color = null;
+            m_ActiveCameraAttachments.depth = null;
         }
 
         void EnqueueDeferred(ref RenderingData renderingData, bool hasDepthPrepass, bool hasNormalPrepass, bool applyMainShadow, bool applyAdditionalShadow)
@@ -827,7 +834,14 @@ namespace UnityEngine.Rendering.Universal
 
         void UpdateCameraAttachments(ref RenderTextureDescriptor descriptor)
         {
-            if (m_CameraAttachments.color.rt.graphicsFormat != descriptor.graphicsFormat)
+            bool bindMS = false;
+#if ENABLE_VR && ENABLE_XR_MODULE
+            bindMS = descriptor.msaaSamples > 1 && !SystemInfo.supportsMultisampleAutoResolve &&
+                     SystemInfo.supportsMultisampledTextures != 0;
+#endif
+
+            if (m_CameraAttachments.color.rt.graphicsFormat != descriptor.graphicsFormat ||
+                m_CameraAttachments.color.isMSAAEnabled != bindMS)
             {
                 m_CameraAttachments.color.Release();
                 m_CameraAttachments.color = RTHandles.Alloc(Vector2.one,
@@ -837,16 +851,11 @@ namespace UnityEngine.Rendering.Universal
                     enableRandomWrite: false,
                     useMipMap: false,
                     autoGenerateMips: false,
-                    enableMSAA: true,
+                    enableMSAA: bindMS,
                     name: "_CameraColorTexture");
             }
-
-            bool bindMS = false;
-#if ENABLE_VR && ENABLE_XR_MODULE
-            bindMS = descriptor.msaaSamples > 1 && !SystemInfo.supportsMultisampleAutoResolve &&
-                     SystemInfo.supportsMultisampledTextures != 0;
-#endif
-            if (bindMS != m_CameraAttachments.depth.rt.bindTextureMS)
+            if (bindMS != m_CameraAttachments.depth.rt.bindTextureMS ||
+                m_CameraAttachments.depth.isMSAAEnabled != bindMS)
             {
                 m_CameraAttachments.depth.Release();
                 m_CameraAttachments.depth = RTHandles.Alloc(
@@ -857,7 +866,7 @@ namespace UnityEngine.Rendering.Universal
                     dimension: TextureDimension.Tex2D,
                     useMipMap: false,
                     autoGenerateMips: false,
-                    enableMSAA: true,
+                    enableMSAA: bindMS,
                     bindTextureMS: bindMS,
                     name: "_CameraDepthAttachment");
             }
