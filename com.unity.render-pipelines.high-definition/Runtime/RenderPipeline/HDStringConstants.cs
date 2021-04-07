@@ -921,6 +921,10 @@ namespace UnityEngine.Rendering.HighDefinition
         public static readonly int _InputTextureDimensions         = Shader.PropertyToID("InputTextureDimensions");
         public static readonly int _OutputTextureDimensions        = Shader.PropertyToID("OutputTextureDimensions");
 
+        // Robust Contrast Adaptive Sharpening
+        public static readonly int _RCASScale                      = Shader.PropertyToID("RCASScale");
+        
+
         // BlitCubeTextureFace.shader
         public static readonly int _InputTex                       = Shader.PropertyToID("_InputTex");
         public static readonly int _LoD                            = Shader.PropertyToID("_LoD");

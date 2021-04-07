@@ -399,7 +399,14 @@ namespace UnityEngine.Rendering.HighDefinition
             }
 
             // Contrast Adaptive Sharpen Upscaling
-            source = ContrastAdaptiveSharpeningPass(renderGraph, hdCamera, source);
+            if (hdCamera.DynResRequest.filter == DynamicResUpscaleFilter.ContrastAdaptiveSharpen)
+            {
+                source = ContrastAdaptiveSharpeningPass(renderGraph, hdCamera, source);
+            }
+            else if (hdCamera.DynResRequest.filter == DynamicResUpscaleFilter.RobustContrastAdaptiveSharpen)
+            {
+                source = RobustContrastAdaptiveSharpeningPass(renderGraph, hdCamera, source);
+            }
 
             FinalPass(renderGraph, hdCamera, afterPostProcessBuffer, alphaTexture, dest, source, m_BlueNoise, flipYInPostProcess);
 
@@ -3940,8 +3947,7 @@ namespace UnityEngine.Rendering.HighDefinition
 
         TextureHandle ContrastAdaptiveSharpeningPass(RenderGraph renderGraph, HDCamera hdCamera, TextureHandle source)
         {
-            if (hdCamera.DynResRequest.enabled &&
-                hdCamera.DynResRequest.filter == DynamicResUpscaleFilter.ContrastAdaptiveSharpen)
+            if (hdCamera.DynResRequest.enabled)
             {
                 using (var builder = renderGraph.AddRenderPass<CASData>("Contrast Adaptive Sharpen", out var passData, ProfilingSampler.Get(HDProfileId.ContrastAdaptiveSharpen)))
                 {
@@ -3973,6 +3979,66 @@ namespace UnityEngine.Rendering.HighDefinition
                             int dispatchY = HDUtils.DivRoundUp(data.outputHeight, 16);
 
                             ctx.cmd.DispatchCompute(data.casCS, data.mainKernel, dispatchX, dispatchY, data.viewCount);
+                        });
+
+                    source = passData.destination;
+                }
+            }
+            return source;
+        }
+
+        #endregion
+
+        #region RCAS
+        class RCASData
+        {
+            public ComputeShader rcasCS;
+            public int initKernel;
+            public int mainKernel;
+            public int viewCount;
+            public int inputWidth;
+            public int inputHeight;
+            public int outputWidth;
+            public int outputHeight;
+
+            public TextureHandle source;
+            public TextureHandle destination;
+
+            public ComputeBufferHandle casParametersBuffer;
+        }
+
+        TextureHandle RobustContrastAdaptiveSharpeningPass(RenderGraph renderGraph, HDCamera hdCamera, TextureHandle source)
+        {
+            if (hdCamera.DynResRequest.enabled)
+            {
+                using (var builder = renderGraph.AddRenderPass<RCASData>("Robust Contrast Adaptive Sharpen", out var passData, ProfilingSampler.Get(HDProfileId.RobustContrastAdaptiveSharpen)))
+                {
+                    passData.rcasCS = defaultResources.shaders.robustContrastAdaptiveSharpenCS;
+                    passData.initKernel = passData.rcasCS.FindKernel("KInitialize");
+                    passData.mainKernel = passData.rcasCS.FindKernel("KMain");
+                    passData.viewCount = hdCamera.viewCount;
+                    passData.inputWidth = hdCamera.actualWidth;
+                    passData.inputHeight = hdCamera.actualHeight;
+                    passData.outputWidth = hdCamera.actualWidth;
+                    passData.outputHeight = hdCamera.actualHeight;
+                    passData.source = builder.ReadTexture(source);
+                    passData.destination = builder.WriteTexture(GetPostprocessOutputHandle(renderGraph, "Robust Contrast Adaptive Sharpen Destination"));
+                    passData.casParametersBuffer = builder.CreateTransientComputeBuffer(new ComputeBufferDesc(1, sizeof(uint) * 4) { name = "Robust Cas Parameters" });
+
+                    builder.SetRenderFunc(
+                        (RCASData data, RenderGraphContext ctx) =>
+                        {
+                            ctx.cmd.SetComputeFloatParam(data.rcasCS, HDShaderIDs._RCASScale, 1.0f);
+                            ctx.cmd.SetComputeTextureParam(data.rcasCS, data.mainKernel, HDShaderIDs._InputTexture, data.source);
+                            ctx.cmd.SetComputeTextureParam(data.rcasCS, data.mainKernel, HDShaderIDs._OutputTexture, data.destination);
+                            ctx.cmd.SetComputeBufferParam(data.rcasCS, data.initKernel, "RCasParameters", data.casParametersBuffer);
+                            ctx.cmd.SetComputeBufferParam(data.rcasCS, data.mainKernel, "RCasParameters", data.casParametersBuffer);
+                            ctx.cmd.DispatchCompute(data.rcasCS, data.initKernel, 1, 1, 1);
+
+                            int dispatchX = HDUtils.DivRoundUp(data.outputWidth, 8);
+                            int dispatchY = HDUtils.DivRoundUp(data.outputHeight, 8);
+
+                            ctx.cmd.DispatchCompute(data.rcasCS, data.mainKernel, dispatchX, dispatchY, data.viewCount);
                         });
 
                     source = passData.destination;
@@ -4061,6 +4127,7 @@ namespace UnityEngine.Rendering.HighDefinition
                             switch (data.dynamicResFilter)
                             {
                                 case DynamicResUpscaleFilter.Bilinear:
+                                case DynamicResUpscaleFilter.RobustContrastAdaptiveSharpen:
                                     finalPassMaterial.EnableKeyword("BILINEAR");
                                     break;
                                 case DynamicResUpscaleFilter.CatmullRom:
