@@ -16,9 +16,6 @@
 // ComputeBuffer is allocated with stride sizeof(int)*4, 2 elements
 RWStructuredBuffer<uint4> RCasParameters;
 
-AF2 InputTextureDimensions;
-AF2 OutputTextureDimensions;
-
 float RCASScale;
 
 TEXTURE2D_X(_InputTexture);

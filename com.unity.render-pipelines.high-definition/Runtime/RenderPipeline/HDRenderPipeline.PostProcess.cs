@@ -405,6 +405,7 @@ namespace UnityEngine.Rendering.HighDefinition
             }
             else if (hdCamera.DynResRequest.filter == DynamicResUpscaleFilter.RobustContrastAdaptiveSharpen)
             {
+                source = EdgeAdaptiveSpatialUpsampling(renderGraph, hdCamera, source);
                 source = RobustContrastAdaptiveSharpeningPass(renderGraph, hdCamera, source);
             }
 
@@ -4017,12 +4018,12 @@ namespace UnityEngine.Rendering.HighDefinition
                     passData.initKernel = passData.rcasCS.FindKernel("KInitialize");
                     passData.mainKernel = passData.rcasCS.FindKernel("KMain");
                     passData.viewCount = hdCamera.viewCount;
-                    passData.inputWidth = hdCamera.actualWidth;
-                    passData.inputHeight = hdCamera.actualHeight;
-                    passData.outputWidth = hdCamera.actualWidth;
-                    passData.outputHeight = hdCamera.actualHeight;
+                    passData.inputWidth = Mathf.RoundToInt(hdCamera.finalViewport.width);
+                    passData.inputHeight = Mathf.RoundToInt(hdCamera.finalViewport.height);
+                    passData.outputWidth = Mathf.RoundToInt(hdCamera.finalViewport.width);
+                    passData.outputHeight = Mathf.RoundToInt(hdCamera.finalViewport.height);
                     passData.source = builder.ReadTexture(source);
-                    passData.destination = builder.WriteTexture(GetPostprocessOutputHandle(renderGraph, "Robust Contrast Adaptive Sharpen Destination"));
+                    passData.destination = builder.WriteTexture(GetPostprocessUpsampledOutputHandle(renderGraph, "Robust Contrast Adaptive Sharpen Destination"));
                     passData.casParametersBuffer = builder.CreateTransientComputeBuffer(new ComputeBufferDesc(1, sizeof(uint) * 4) { name = "Robust Cas Parameters" });
 
                     builder.SetRenderFunc(
@@ -4039,6 +4040,75 @@ namespace UnityEngine.Rendering.HighDefinition
                             int dispatchY = HDUtils.DivRoundUp(data.outputHeight, 8);
 
                             ctx.cmd.DispatchCompute(data.rcasCS, data.mainKernel, dispatchX, dispatchY, data.viewCount);
+                        });
+
+                    source = passData.destination;
+                }
+            }
+            return source;
+        }
+
+        #endregion
+
+        #region EASU
+        class EASUData
+        {
+            public ComputeShader easuCS;
+            public int initKernel;
+            public int mainKernel;
+            public int viewCount;
+            public int inputWidth;
+            public int inputHeight;
+            public int outputWidth;
+            public int outputHeight;
+
+            public TextureHandle source;
+            public TextureHandle destination;
+
+            public ComputeBufferHandle easuParameterBuffer;
+        }
+
+        TextureHandle EdgeAdaptiveSpatialUpsampling(RenderGraph renderGraph, HDCamera hdCamera, TextureHandle source)
+        {
+            if (hdCamera.DynResRequest.enabled)
+            {
+                using (var builder = renderGraph.AddRenderPass<EASUData>("Edge Adaptive Spatial Upsampling", out var passData, ProfilingSampler.Get(HDProfileId.EdgeAdaptiveSpatialUpsampling)))
+                {
+                    passData.easuCS = defaultResources.shaders.edgeAdaptiveSpatialUpsamplingCS;
+                    passData.initKernel = passData.easuCS.FindKernel("KInitialize");
+                    passData.mainKernel = passData.easuCS.FindKernel("KMain");
+                    passData.viewCount = hdCamera.viewCount;
+                    passData.inputWidth = hdCamera.actualWidth;
+                    passData.inputHeight = hdCamera.actualHeight;
+                    passData.outputWidth = Mathf.RoundToInt(hdCamera.finalViewport.width);
+                    passData.outputHeight = Mathf.RoundToInt(hdCamera.finalViewport.height);
+                    passData.source = builder.ReadTexture(source);
+                    passData.destination = builder.WriteTexture(GetPostprocessUpsampledOutputHandle(renderGraph, "Edge Adaptive Spatial Upsampling"));
+                    passData.easuParameterBuffer = builder.CreateTransientComputeBuffer(new ComputeBufferDesc(4, sizeof(uint) * 4) { name = "EASU Parameters" });
+
+                    builder.SetRenderFunc(
+                        (EASUData data, RenderGraphContext ctx) =>
+                        {
+                            var sourceTexture = (RenderTexture)data.source;
+                            var inputTextureSize = new Vector4(sourceTexture.width, sourceTexture.height);
+                            if (DynamicResolutionHandler.instance.HardwareDynamicResIsEnabled())
+                            {
+                                var maxScaledSz = DynamicResolutionHandler.instance.ApplyScalesOnSize(new Vector2Int(RTHandles.maxWidth, RTHandles.maxHeight));
+                                inputTextureSize = new Vector4(maxScaledSz.x, maxScaledSz.y);
+                            }
+                            ctx.cmd.SetComputeTextureParam(data.easuCS, data.mainKernel, HDShaderIDs._InputTexture, data.source);
+                            ctx.cmd.SetComputeVectorParam(data.easuCS, HDShaderIDs._EASUViewportSize,   new Vector4(data.inputWidth, data.inputHeight));
+                            ctx.cmd.SetComputeVectorParam(data.easuCS, HDShaderIDs._EASUInputImageSize, inputTextureSize);
+                            ctx.cmd.SetComputeTextureParam(data.easuCS, data.mainKernel, HDShaderIDs._OutputTexture, data.destination);
+                            ctx.cmd.SetComputeVectorParam(data.easuCS, HDShaderIDs._EASUOutputSize, new Vector4(data.outputWidth, data.outputHeight));
+                            ctx.cmd.SetComputeBufferParam(data.easuCS, data.initKernel, "EASUParameters", data.easuParameterBuffer);
+                            ctx.cmd.SetComputeBufferParam(data.easuCS, data.mainKernel, "EASUParameters", data.easuParameterBuffer);
+                            ctx.cmd.DispatchCompute(data.easuCS, data.initKernel, 1, 1, 1);
+
+                            int dispatchX = HDUtils.DivRoundUp(data.outputWidth,  8);
+                            int dispatchY = HDUtils.DivRoundUp(data.outputHeight, 8);
+
+                            ctx.cmd.DispatchCompute(data.easuCS, data.mainKernel, dispatchX, dispatchY, data.viewCount);
                         });
 
                     source = passData.destination;
@@ -4127,7 +4197,6 @@ namespace UnityEngine.Rendering.HighDefinition
                             switch (data.dynamicResFilter)
                             {
                                 case DynamicResUpscaleFilter.Bilinear:
-                                case DynamicResUpscaleFilter.RobustContrastAdaptiveSharpen:
                                     finalPassMaterial.EnableKeyword("BILINEAR");
                                     break;
                                 case DynamicResUpscaleFilter.CatmullRom:
@@ -4137,6 +4206,7 @@ namespace UnityEngine.Rendering.HighDefinition
                                     finalPassMaterial.EnableKeyword("LANCZOS");
                                     break;
                                 case DynamicResUpscaleFilter.ContrastAdaptiveSharpen:
+                                case DynamicResUpscaleFilter.RobustContrastAdaptiveSharpen:
                                     finalPassMaterial.EnableKeyword("CONTRASTADAPTIVESHARPEN");
                                     break;
                             }

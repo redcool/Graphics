@@ -12,7 +12,6 @@ namespace UnityEditor.Rendering.HighDefinition
         public SerializedProperty minPercentage;
         public SerializedProperty dynamicResType;
         public SerializedProperty softwareUpsamplingFilter;
-        public SerializedProperty useEdgeAdaptiveSpatialUpsampling;
         public SerializedProperty forcePercentage;
         public SerializedProperty forcedPercentage;
 
@@ -25,7 +24,6 @@ namespace UnityEditor.Rendering.HighDefinition
             minPercentage            = root.Find((GlobalDynamicResolutionSettings s) => s.minPercentage);
             dynamicResType           = root.Find((GlobalDynamicResolutionSettings s) => s.dynResType);
             softwareUpsamplingFilter = root.Find((GlobalDynamicResolutionSettings s) => s.upsampleFilter);
-            useEdgeAdaptiveSpatialUpsampling =root.Find((GlobalDynamicResolutionSettings s) => s.useEdgeAdaptiveSpatialUpsampling);
             forcePercentage          = root.Find((GlobalDynamicResolutionSettings s) => s.forceResolution);
             forcedPercentage         = root.Find((GlobalDynamicResolutionSettings s) => s.forcedPercentage);
         }

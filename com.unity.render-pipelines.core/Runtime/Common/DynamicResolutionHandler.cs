@@ -68,6 +68,11 @@ namespace UnityEngine.Rendering
         private Vector2Int cachedOriginalSize;
 
         /// <summary>
+        /// Use a special upscaler feature for Robust Contrast Adaptive Scaling and Contrast Adaptive Scaling.
+        /// </summary>
+        public bool useEdgeAdaptiveSpatialUpsampling { get; set; }
+
+        /// <summary>
         /// The filter that is used to upscale the rendering result to the native resolution.
         /// </summary>
         public DynamicResUpscaleFilter filter { get; set; }
@@ -179,6 +184,8 @@ namespace UnityEngine.Rendering
         private void ProcessSettings(GlobalDynamicResolutionSettings settings)
         {
             m_Enabled = settings.enabled && (Application.isPlaying || settings.forceResolution);
+            useEdgeAdaptiveSpatialUpsampling = settings.useEdgeAdaptiveSpatialUpsampling;
+
             if (!m_Enabled)
             {
                 m_CurrentFraction = 1.0f;

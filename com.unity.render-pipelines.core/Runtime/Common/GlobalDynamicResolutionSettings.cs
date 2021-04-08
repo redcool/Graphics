@@ -74,9 +74,6 @@ namespace UnityEngine.Rendering
         /// <summary>The type of upscaling filter to use.</summary>
         public DynamicResUpscaleFilter upsampleFilter;
 
-        /// <summary>When Contrast Adaptive Sharpen or Robust Contrast Adaptive Sharpening are used, we will use Edge Adaptive Spatial Upsampling upscaler.</summary>
-        public bool useEdgeAdaptiveSpatialUpsampling;
-
         /// <summary>Select whether dynamic resolution system will force a specific resolution percentage.</summary>
         public bool forceResolution;
         /// <summary>The resolution percentage forced in case forceResolution is set to true.</summary>
