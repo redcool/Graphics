@@ -227,6 +227,17 @@ namespace UnityEngine.Rendering
             return new Vector2(scaleFractionX, scaleFractionY);
         }
 
+        public float GetGlobalMipBias(int renderWidth, int renderHeight)
+        {
+            if (filter != DynamicResUpscaleFilter.RobustContrastAdaptiveSharpen)
+            {
+                return 0.0f;
+            }
+
+            float ratioX = (float)renderWidth / (float)finalViewport.x;
+            return (float)(0.2*Math.Log((double)ratioX, 2.0));
+        }
+
         /// <summary>
         /// Set the scaler method used to drive dynamic resolution.
         /// </summary>

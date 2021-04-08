@@ -324,17 +324,6 @@ namespace UnityEngine.Rendering.HighDefinition
             return GetPostprocessOutputHandle(renderGraph, name, false);
         }
 
-        void FlushPostProcessGlobalConstants(RenderGraph renderGraph, HDCamera hdCamera)
-        {
-            float prevGlobalMipBias = hdCamera.GlobalMipBias;
-            hdCamera.ResetGlobalMipBias();
-            float newGlobalMipBias = hdCamera.GlobalMipBias;
-            if (prevGlobalMipBias == newGlobalMipBias)
-                return;
-
-            PushGlobalCameraParams(renderGraph, hdCamera);
-        }
-
         TextureHandle RenderPostProcess(RenderGraph     renderGraph,
             in PrepassOutput    prepassOutput,
             TextureHandle       inputColor,
@@ -364,8 +353,6 @@ namespace UnityEngine.Rendering.HighDefinition
 
             if (m_PostProcessEnabled)
             {
-                FlushPostProcessGlobalConstants(renderGraph, hdCamera);
-
                 source = StopNaNsPass(renderGraph, hdCamera, source);
 
                 source = DynamicExposurePass(renderGraph, hdCamera, source);
