@@ -184,7 +184,6 @@ namespace UnityEngine.Rendering
         private void ProcessSettings(GlobalDynamicResolutionSettings settings)
         {
             m_Enabled = settings.enabled && (Application.isPlaying || settings.forceResolution);
-            useEdgeAdaptiveSpatialUpsampling = settings.useEdgeAdaptiveSpatialUpsampling;
 
             if (!m_Enabled)
             {

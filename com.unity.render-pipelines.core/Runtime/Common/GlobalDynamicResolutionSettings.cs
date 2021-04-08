@@ -57,8 +57,7 @@ namespace UnityEngine.Rendering
             // It fall-backs to software when not supported, so it makes sense to have it on by default.
             dynResType = DynamicResolutionType.Hardware,
             upsampleFilter = DynamicResUpscaleFilter.CatmullRom,
-            forcedPercentage = 100.0f,
-            useEdgeAdaptiveSpatialUpsampling = true
+            forcedPercentage = 100.0f
         };
 
         /// <summary>Select whether the dynamic resolution is enabled or not.</summary>
