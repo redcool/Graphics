@@ -39,9 +39,13 @@ namespace UnityEngine.Rendering
         /// </summary>
         ContrastAdaptiveSharpen,
         /// <summary>
-        /// Robust Contrast Adaptive Sharpening upscaling filter.
+        /// Edge Adaptive Spatial Upsampling filter.
         /// </summary>
-        RobustContrastAdaptiveSharpen,
+        EdgeAdaptiveSpatial,
+        /// <summary>
+        /// Edge Adaptive Spatial Upsampling filter with Robust Contrast Sharpening.
+        /// </summary>
+        EdgeAdaptiveRobustContrastSharpening,
     }
 
     /// <summary>User-facing settings for dynamic resolution.</summary>
@@ -57,7 +61,9 @@ namespace UnityEngine.Rendering
             // It fall-backs to software when not supported, so it makes sense to have it on by default.
             dynResType = DynamicResolutionType.Hardware,
             upsampleFilter = DynamicResUpscaleFilter.CatmullRom,
-            forcedPercentage = 100.0f
+            forcedPercentage = 100.0f,
+            gamma2Space = false,
+            mipBiasScale = 0.0f
         };
 
         /// <summary>Select whether the dynamic resolution is enabled or not.</summary>
@@ -77,5 +83,10 @@ namespace UnityEngine.Rendering
         public bool forceResolution;
         /// <summary>The resolution percentage forced in case forceResolution is set to true.</summary>
         public float forcedPercentage;
+
+        public bool gamma2Space;
+
+        [Range(0.0f, 1.0f)]
+        public float mipBiasScale;
     }
 }

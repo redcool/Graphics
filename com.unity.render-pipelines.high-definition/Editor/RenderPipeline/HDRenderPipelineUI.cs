@@ -465,6 +465,11 @@ namespace UnityEditor.Rendering.HighDefinition
                     EditorGUILayout.PropertyField(serialized.renderPipelineSettings.dynamicResolutionSettings.softwareUpsamplingFilter, Styles.upsampleFilter);
 
                 var filterType = (DynamicResUpscaleFilter)serialized.renderPipelineSettings.dynamicResolutionSettings.softwareUpsamplingFilter.intValue;
+                if (filterType == DynamicResUpscaleFilter.EdgeAdaptiveRobustContrastSharpening || filterType == DynamicResUpscaleFilter.EdgeAdaptiveSpatial)
+                {
+                    EditorGUILayout.PropertyField(serialized.renderPipelineSettings.dynamicResolutionSettings.gamma2Space, Styles.gamma2Space);
+                    EditorGUILayout.PropertyField(serialized.renderPipelineSettings.dynamicResolutionSettings.mipBiasScale, Styles.mipBiasScale);
+                }
 
                 if (!serialized.renderPipelineSettings.dynamicResolutionSettings.forcePercentage.hasMultipleDifferentValues
                     && !serialized.renderPipelineSettings.dynamicResolutionSettings.forcePercentage.boolValue)

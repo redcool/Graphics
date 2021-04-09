@@ -403,10 +403,11 @@ namespace UnityEngine.Rendering.HighDefinition
             {
                 source = ContrastAdaptiveSharpeningPass(renderGraph, hdCamera, source);
             }
-            else if (hdCamera.DynResRequest.filter == DynamicResUpscaleFilter.RobustContrastAdaptiveSharpen)
+            else if (hdCamera.DynResRequest.filter == DynamicResUpscaleFilter.EdgeAdaptiveSpatial || hdCamera.DynResRequest.filter == DynamicResUpscaleFilter.EdgeAdaptiveRobustContrastSharpening)
             {
                 source = EdgeAdaptiveSpatialUpsampling(renderGraph, hdCamera, source);
-                source = RobustContrastAdaptiveSharpeningPass(renderGraph, hdCamera, source);
+                if (hdCamera.DynResRequest.filter == DynamicResUpscaleFilter.EdgeAdaptiveRobustContrastSharpening)
+                    source = RobustContrastAdaptiveSharpeningPass(renderGraph, hdCamera, source);
             }
 
             FinalPass(renderGraph, hdCamera, afterPostProcessBuffer, alphaTexture, dest, source, m_BlueNoise, flipYInPostProcess);
@@ -3810,6 +3811,13 @@ namespace UnityEngine.Rendering.HighDefinition
                     passData.uberPostCS.EnableKeyword("ENABLE_ALPHA");
                 }
 
+                if (hdCamera.DynResRequest.enabled
+                    && DynamicResolutionHandler.instance.gamma2Space
+                    && (DynamicResolutionHandler.instance.filter == DynamicResUpscaleFilter.EdgeAdaptiveSpatial || DynamicResolutionHandler.instance.filter == DynamicResUpscaleFilter.EdgeAdaptiveRobustContrastSharpening))
+                {
+                    passData.uberPostCS.EnableKeyword("GAMMA2_OUTPUT");
+                }
+
                 passData.outputColorLog = m_CurrentDebugDisplaySettings.data.fullScreenDebugMode == FullScreenDebugMode.ColorLog;
                 passData.width = hdCamera.actualWidth;
                 passData.height = hdCamera.actualHeight;
@@ -3991,6 +3999,7 @@ namespace UnityEngine.Rendering.HighDefinition
         #endregion
 
         #region RCAS
+
         class RCASData
         {
             public ComputeShader rcasCS;
@@ -4051,6 +4060,7 @@ namespace UnityEngine.Rendering.HighDefinition
         #endregion
 
         #region EASU
+
         class EASUData
         {
             public ComputeShader easuCS;
@@ -4075,6 +4085,11 @@ namespace UnityEngine.Rendering.HighDefinition
                 using (var builder = renderGraph.AddRenderPass<EASUData>("Edge Adaptive Spatial Upsampling", out var passData, ProfilingSampler.Get(HDProfileId.EdgeAdaptiveSpatialUpsampling)))
                 {
                     passData.easuCS = defaultResources.shaders.edgeAdaptiveSpatialUpsamplingCS;
+                    passData.easuCS.shaderKeywords = null;
+                    if (DynamicResolutionHandler.instance.gamma2Space)
+                    {
+                        passData.easuCS.EnableKeyword("GAMMA2_INPUT");
+                    }
                     passData.initKernel = passData.easuCS.FindKernel("KInitialize");
                     passData.mainKernel = passData.easuCS.FindKernel("KMain");
                     passData.viewCount = hdCamera.viewCount;
@@ -4085,6 +4100,7 @@ namespace UnityEngine.Rendering.HighDefinition
                     passData.source = builder.ReadTexture(source);
                     passData.destination = builder.WriteTexture(GetPostprocessUpsampledOutputHandle(renderGraph, "Edge Adaptive Spatial Upsampling"));
                     passData.easuParameterBuffer = builder.CreateTransientComputeBuffer(new ComputeBufferDesc(4, sizeof(uint) * 4) { name = "EASU Parameters" });
+
 
                     builder.SetRenderFunc(
                         (EASUData data, RenderGraphContext ctx) =>
@@ -4206,7 +4222,8 @@ namespace UnityEngine.Rendering.HighDefinition
                                     finalPassMaterial.EnableKeyword("LANCZOS");
                                     break;
                                 case DynamicResUpscaleFilter.ContrastAdaptiveSharpen:
-                                case DynamicResUpscaleFilter.RobustContrastAdaptiveSharpen:
+                                case DynamicResUpscaleFilter.EdgeAdaptiveSpatial:
+                                case DynamicResUpscaleFilter.EdgeAdaptiveRobustContrastSharpening:
                                     finalPassMaterial.EnableKeyword("CONTRASTADAPTIVESHARPEN");
                                     break;
                             }

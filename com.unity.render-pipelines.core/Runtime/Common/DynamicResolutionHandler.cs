@@ -77,6 +77,10 @@ namespace UnityEngine.Rendering
         /// </summary>
         public DynamicResUpscaleFilter filter { get; set; }
 
+        public bool gamma2Space { get; set; }
+
+        public float mipBiasScale { get; set; }
+
         /// <summary>
         /// The viewport of the final buffer. This is likely the resolution the dynamic resolution starts from before any scaling. Note this is NOT the target resolution the rendering will happen in
         /// but the resolution the scaled rendered result will be upscaled to.
@@ -184,6 +188,8 @@ namespace UnityEngine.Rendering
         private void ProcessSettings(GlobalDynamicResolutionSettings settings)
         {
             m_Enabled = settings.enabled && (Application.isPlaying || settings.forceResolution);
+            gamma2Space = settings.gamma2Space;
+            mipBiasScale = settings.mipBiasScale;
 
             if (!m_Enabled)
             {
@@ -229,13 +235,14 @@ namespace UnityEngine.Rendering
 
         public float GetGlobalMipBias(int renderWidth, int renderHeight)
         {
-            if (filter != DynamicResUpscaleFilter.RobustContrastAdaptiveSharpen)
+            bool usingMipBiasFilter = (filter == DynamicResUpscaleFilter.EdgeAdaptiveRobustContrastSharpening || filter == DynamicResUpscaleFilter.EdgeAdaptiveSpatial);
+            if (mipBiasScale == 0.0f || !usingMipBiasFilter || !m_Enabled)
             {
                 return 0.0f;
             }
 
             float ratioX = (float)renderWidth / (float)finalViewport.x;
-            return (float)(0.2*Math.Log((double)ratioX, 2.0));
+            return (float)((double)mipBiasScale*(Math.Log((double)ratioX, 2.0)));
         }
 
         /// <summary>

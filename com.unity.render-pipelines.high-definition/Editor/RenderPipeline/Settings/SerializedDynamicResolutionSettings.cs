@@ -14,6 +14,8 @@ namespace UnityEditor.Rendering.HighDefinition
         public SerializedProperty softwareUpsamplingFilter;
         public SerializedProperty forcePercentage;
         public SerializedProperty forcedPercentage;
+        public SerializedProperty mipBiasScale;
+        public SerializedProperty gamma2Space;
 
         public SerializedDynamicResolutionSettings(SerializedProperty root)
         {
@@ -26,6 +28,8 @@ namespace UnityEditor.Rendering.HighDefinition
             softwareUpsamplingFilter = root.Find((GlobalDynamicResolutionSettings s) => s.upsampleFilter);
             forcePercentage          = root.Find((GlobalDynamicResolutionSettings s) => s.forceResolution);
             forcedPercentage         = root.Find((GlobalDynamicResolutionSettings s) => s.forcedPercentage);
+            gamma2Space              = root.Find((GlobalDynamicResolutionSettings s) => s.gamma2Space);
+            mipBiasScale             = root.Find((GlobalDynamicResolutionSettings s) => s.mipBiasScale);
         }
     }
 }

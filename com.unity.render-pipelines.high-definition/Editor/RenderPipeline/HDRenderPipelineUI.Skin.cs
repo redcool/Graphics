@@ -224,6 +224,8 @@ namespace UnityEditor.Rendering.HighDefinition
             public static readonly GUIContent upsampleFilter = EditorGUIUtility.TrTextContent("Upscale Filter", "Specifies the filter that HDRP uses for upscaling.");
             public static readonly GUIContent forceScreenPercentage = EditorGUIUtility.TrTextContent("Force Screen Percentage", "When enabled, HDRP uses the Forced Screen Percentage value as the screen percentage.");
             public static readonly GUIContent forcedScreenPercentage = EditorGUIUtility.TrTextContent("Forced Screen Percentage", "Sets a specific screen percentage value. HDRP forces this screen percentage for dynamic resolution.");
+            public static readonly GUIContent gamma2Space = EditorGUIUtility.TrTextContent("Enable Gamma2 space for FX", "The input of EASU will be in gamma2 space.");
+            public static readonly GUIContent mipBiasScale = EditorGUIUtility.TrTextContent("Mip Bias Strength", "Sets a mip bias strength for edge adaptive upsamplers. Set to 0 to disable, set to 1 for maximum.");
 
             public static readonly GUIContent lowResTransparentEnabled = EditorGUIUtility.TrTextContent("Enable", "When enabled, materials tagged as Low Res Transparent, will be rendered in a quarter res offscreen buffer and then composited to full res.");
             public static readonly GUIContent checkerboardDepthBuffer = EditorGUIUtility.TrTextContent("Checkerboarded depth buffer downsample", "When enabled, the depth buffer used for low res transparency is generated in a min/max checkerboard pattern from original full res buffer.");
