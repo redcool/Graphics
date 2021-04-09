@@ -33,6 +33,8 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
         protected override string raytracingInclude => CoreIncludes.kHairRaytracing;
         protected override FieldDescriptor subShaderField => new FieldDescriptor(kSubShader, "Hair SubShader", "");
         protected override bool requireSplitLighting => false;
+        protected override bool supportPathtracing => true;
+        protected override string pathtracingInclude => CoreIncludes.kHairPathtracing;
 
         HairData m_HairData;
 

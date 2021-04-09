@@ -107,6 +107,14 @@ namespace UnityEngine.Rendering.HighDefinition
             public Vector3 hairStrandDirectionWS;
             public float anisotropy;
 
+            // Temporarily just add these into Hair BSDF to make the compiler shut up.
+            [SurfaceDataAttributes("", true)]
+            public Vector3 tangentWS;
+            [SurfaceDataAttributes("", true)]
+            public Vector3 bitangentWS;
+            public float roughnessT;
+            public float roughnessB;
+
             // Kajiya kay
             public float secondaryPerceptualRoughness;
             public Vector3 secondarySpecularTint;
