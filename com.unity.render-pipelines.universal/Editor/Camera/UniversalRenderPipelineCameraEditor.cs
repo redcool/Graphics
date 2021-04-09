@@ -137,42 +137,43 @@ namespace UnityEditor.Rendering.Universal
             rect.height = EditorGUIUtility.singleLineHeight;
             rect.y += 1;
 
-            (Camera camera, UniversalRenderPipelineSerializedCamera serializedCamera)overlayCamera = m_SerializedCamera[index];
-            if (overlayCamera.camera != null)
+            (Camera camera, UniversalRenderPipelineSerializedCamera serializedCamera) overlayCamera = m_SerializedCamera[index];
+            Camera cam = overlayCamera.camera;
+            if (cam != null)
             {
                 bool typeError = false;
-                var type = overlayCamera.camera.gameObject.GetComponent<UniversalAdditionalCameraData>().renderType;
+                var type = cam.gameObject.GetComponent<UniversalAdditionalCameraData>().renderType;
                 if (type != CameraRenderType.Overlay)
                 {
                     typeError = true;
-                    if (!m_TypeErrorCameras.Contains(overlayCamera.camera))
+                    if (!m_TypeErrorCameras.Contains(cam))
                     {
-                        m_TypeErrorCameras.Add(overlayCamera.camera);
+                        m_TypeErrorCameras.Add(cam);
                     }
                 }
-                else if (m_TypeErrorCameras.Contains(overlayCamera.camera))
+                else if (m_TypeErrorCameras.Contains(cam))
                 {
-                    m_TypeErrorCameras.Remove(overlayCamera.camera);
+                    m_TypeErrorCameras.Remove(cam);
                 }
 
                 bool outputWarning = false;
-                if (IsStackCameraOutputDirty(overlayCamera.camera, overlayCamera.serializedCamera))
+                if (IsStackCameraOutputDirty(cam, overlayCamera.serializedCamera))
                 {
                     outputWarning = true;
-                    if (!m_OutputWarningCameras.Contains(overlayCamera.camera))
+                    if (!m_OutputWarningCameras.Contains(cam))
                     {
-                        m_OutputWarningCameras.Add(overlayCamera.camera);
+                        m_OutputWarningCameras.Add(cam);
                     }
                 }
-                else if (m_OutputWarningCameras.Contains(overlayCamera.camera))
+                else if (m_OutputWarningCameras.Contains(cam))
                 {
-                    m_OutputWarningCameras.Remove(overlayCamera.camera);
+                    m_OutputWarningCameras.Remove(cam);
                 }
 
                 GUIContent nameContent =
                     outputWarning ?
-                    EditorGUIUtility.TrTextContent(overlayCamera.camera.name, "Output properties do not match base camera", m_WarningIcon) :
-                    EditorGUIUtility.TrTextContent(overlayCamera.camera.name);
+                    EditorGUIUtility.TrTextContent(cam.name, "Output properties do not match base camera", m_WarningIcon) :
+                    EditorGUIUtility.TrTextContent(cam.name);
 
                 GUIContent typeContent =
                     typeError ?
@@ -189,7 +190,7 @@ namespace UnityEditor.Rendering.Universal
                 }
 
                 // Printing if Post Processing is on or not.
-                var isPostActive = overlayCamera.camera.gameObject.GetComponent<UniversalAdditionalCameraData>().renderPostProcessing;
+                var isPostActive = cam.gameObject.GetComponent<UniversalAdditionalCameraData>().renderPostProcessing;
                 if (isPostActive)
                 {
                     Rect selectRect = new Rect(rect.width - 20, rect.y, 50, EditorGUIUtility.singleLineHeight);
