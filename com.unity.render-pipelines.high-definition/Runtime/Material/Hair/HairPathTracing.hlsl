@@ -2,6 +2,16 @@
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/PathTracing/Shaders/PathTracingMaterial.hlsl"
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/PathTracing/Shaders/PathTracingBSDF.hlsl"
 
+// Disney Reference
+// --------------------------------------------------------------------------------------
+
+void LongitudinalScattering()
+{
+
+}
+
+// --------------------------------------------------------------------------------------
+
 void ProcessBSDFData(PathIntersection pathIntersection, BuiltinData builtinData, inout BSDFData bsdfData)
 {
     // TODO
@@ -44,7 +54,7 @@ bool SampleMaterial(MaterialData mtlData, float3 inputSample, out float3 sampleD
     result.diffValue = value;
     result.diffPdf = pdf;
 
-    return false;
+    return true;
 }
 
 float AdjustPathRoughness(MaterialData mtlData, MaterialResult mtlResult, bool isSampleBelow, float pathRoughness)

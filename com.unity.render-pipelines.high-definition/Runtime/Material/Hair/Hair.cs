@@ -71,6 +71,18 @@ namespace UnityEngine.Rendering.HighDefinition
 
             [SurfaceDataAttributes("Secondary Specular Shift")]
             public float secondarySpecularShift;
+
+            // Marschner
+            [SurfaceDataAttributes("Longitudinal Roughness")]
+            public float longitudinalRoughness;
+            [SurfaceDataAttributes("Azimuthal Roughness")]
+            public float azimuthalRoughness;
+            [SurfaceDataAttributes("Primary Reflection Roughness")]
+            public float primaryReflectionRoughness;
+            [SurfaceDataAttributes("Refraction Index")]
+            public float ior;
+            [SurfaceDataAttributes("Cuticle Angle")]
+            public float cuticleAngle;
         };
 
         //-----------------------------------------------------------------------------
@@ -107,7 +119,7 @@ namespace UnityEngine.Rendering.HighDefinition
             public Vector3 hairStrandDirectionWS;
             public float anisotropy;
 
-            // Temporarily just add these into Hair BSDF to make the compiler shut up.
+            // Temporarily just add these into Hair BSDF to make the compiler shut up (for pathtracing which assumes all BRDF have tangent frame).
             [SurfaceDataAttributes("", true)]
             public Vector3 tangentWS;
             [SurfaceDataAttributes("", true)]

@@ -95,7 +95,11 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
             }
             else
             {
-                // TODO: Marschner Parametrization.
+                context.AddBlock(HDBlockFields.SurfaceDescription.LongitudinalRoughness);
+                context.AddBlock(HDBlockFields.SurfaceDescription.AzimuthalRoughness);
+                context.AddBlock(HDBlockFields.SurfaceDescription.PrimaryReflectionRoughness);
+                context.AddBlock(HDBlockFields.SurfaceDescription.RefractionIndex);
+                context.AddBlock(HDBlockFields.SurfaceDescription.CuticleAngle);
             }
         }
 
