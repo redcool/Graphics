@@ -41,6 +41,22 @@ float GetAmbientOcclusionForMicroShadowing(BSDFData bsdfData)
     return 1.0;
 }
 
+// Ref: A Practical and Controllable Hair and Fur Model for Production Path Tracing
+float3 DiffuseColorToTransmittance(float3 diffuseColor, float azimuthalRoughness)
+{
+    float beta  = azimuthalRoughness;
+    float beta2 = beta  * beta;
+    float beta3 = beta2 * beta;
+    float beta4 = beta3 * beta;
+    float beta5 = beta4 * beta;
+
+    // Least squares fit of an inverse mapping between scattering parameters and scattering albedo.
+    float denom = 5.969 - (0.215 * beta) + (2.532 * beta2) - (10.73 * beta3) + (5.574 * beta4) + (0.245 * beta5);
+
+    float3 t = log(diffuseColor) / denom;
+    return t * t;
+}
+
 // This function is use to help with debugging and must be implemented by any lit material
 // Implementer must take into account what are the current override component and
 // adjust SurfaceData properties accordingdly
@@ -173,9 +189,12 @@ BSDFData ConvertSurfaceDataToBSDFData(uint2 positionSS, SurfaceData surfaceData)
     // Marschner
     if (HasFlag(surfaceData.materialFeatures, MATERIALFEATUREFLAGS_HAIR_MARSCHNER))
     {
-        // TODO: Disney parametrization of roughness and scattering.
-        bsdfData.roughnessT = surfaceData.longitudinalRoughness;
-        bsdfData.roughnessB = surfaceData.azimuthalRoughness;
+        bsdfData.transmittance = DiffuseColorToTransmittance(surfaceData.diffuseColor, surfaceData.roughnessAzimuthal);
+
+        // TODO: Discussion about these two perceptual roughness terms. Should they be in terms of smoothness?
+        bsdfData.roughnessT = surfaceData.roughnessLongitudinal;
+        bsdfData.roughnessB = surfaceData.roughnessAzimuthal;
+        bsdfData.roughnessPrimaryReflection = surfaceData.roughnessPrimaryReflection;
         bsdfData.ior = surfaceData.ior;
         bsdfData.cuticleAngle = surfaceData.cuticleAngle;
     }

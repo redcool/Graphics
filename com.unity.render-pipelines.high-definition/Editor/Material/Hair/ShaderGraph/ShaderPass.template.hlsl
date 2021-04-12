@@ -42,9 +42,9 @@ void BuildSurfaceData(FragInputs fragInputs, inout SurfaceDescription surfaceDes
     $SurfaceDescription.SecondarySpecularShift:         surfaceData.secondarySpecularShift =        surfaceDescription.SecondarySpecularShift;
 
     // TODO: Adopt smoothness nomenclature + factorization?
-    $SurfaceDescription.LongitudinalRoughness:          surfaceData.longitudinalRoughness =         surfaceDescription.LongitudinalRoughness;
-    $SurfaceDescription.AzimuthalRoughness:             surfaceData.azimuthalRoughness =            surfaceDescription.AzimuthalRoughness;
-    $SurfaceDescription.PrimaryReflectionRoughness:     surfaceData.primaryReflectionRoughness =    surfaceDescription.PrimaryReflectionRoughness;
+    $SurfaceDescription.LongitudinalRoughness:          surfaceData.roughnessLongitudinal =         surfaceDescription.LongitudinalRoughness;
+    $SurfaceDescription.AzimuthalRoughness:             surfaceData.roughnessAzimuthal =            surfaceDescription.AzimuthalRoughness;
+    $SurfaceDescription.PrimaryReflectionRoughness:     surfaceData.roughnessPrimaryReflection =    surfaceDescription.PrimaryReflectionRoughness;
     $SurfaceDescription.RefractionIndex:                surfaceData.ior =                           surfaceDescription.RefractionIndex;
     $SurfaceDescription.CuticleAngle:                   surfaceData.cuticleAngle =                  surfaceDescription.CuticleAngle;
 

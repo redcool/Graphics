@@ -64,7 +64,7 @@
 #define DEBUGVIEW_HAIR_BSDFDATA_SECONDARY_SPECULAR_EXPONENT (1472)
 #define DEBUGVIEW_HAIR_BSDFDATA_SPECULAR_SHIFT (1473)
 #define DEBUGVIEW_HAIR_BSDFDATA_SECONDARY_SPECULAR_SHIFT (1474)
-#define DEBUGVIEW_HAIR_BSDFDATA_PRIMARY_REFLECTION_ROUGHNESS (1475)
+#define DEBUGVIEW_HAIR_BSDFDATA_ROUGHNESS_PRIMARY_REFLECTION (1475)
 #define DEBUGVIEW_HAIR_BSDFDATA_IOR (1476)
 #define DEBUGVIEW_HAIR_BSDFDATA_CUTICLE_ANGLE (1477)
 
@@ -87,9 +87,9 @@ struct SurfaceData
     float3 secondarySpecularTint;
     float specularShift;
     float secondarySpecularShift;
-    float longitudinalRoughness;
-    float azimuthalRoughness;
-    float primaryReflectionRoughness;
+    float roughnessLongitudinal;
+    float roughnessAzimuthal;
+    float roughnessPrimaryReflection;
     float ior;
     float cuticleAngle;
 };
@@ -121,7 +121,7 @@ struct BSDFData
     float secondarySpecularExponent;
     float specularShift;
     float secondarySpecularShift;
-    float primaryReflectionRoughness;
+    float roughnessPrimaryReflection;
     float ior;
     float cuticleAngle;
 };
@@ -188,13 +188,13 @@ void GetGeneratedSurfaceDataDebug(uint paramId, SurfaceData surfacedata, inout f
             result = surfacedata.secondarySpecularShift.xxx;
             break;
         case DEBUGVIEW_HAIR_SURFACEDATA_LONGITUDINAL_ROUGHNESS:
-            result = surfacedata.longitudinalRoughness.xxx;
+            result = surfacedata.roughnessLongitudinal.xxx;
             break;
         case DEBUGVIEW_HAIR_SURFACEDATA_AZIMUTHAL_ROUGHNESS:
-            result = surfacedata.azimuthalRoughness.xxx;
+            result = surfacedata.roughnessAzimuthal.xxx;
             break;
         case DEBUGVIEW_HAIR_SURFACEDATA_PRIMARY_REFLECTION_ROUGHNESS:
-            result = surfacedata.primaryReflectionRoughness.xxx;
+            result = surfacedata.roughnessPrimaryReflection.xxx;
             break;
         case DEBUGVIEW_HAIR_SURFACEDATA_REFRACTION_INDEX:
             result = surfacedata.ior.xxx;
@@ -288,8 +288,8 @@ void GetGeneratedBSDFDataDebug(uint paramId, BSDFData bsdfdata, inout float3 res
         case DEBUGVIEW_HAIR_BSDFDATA_SECONDARY_SPECULAR_SHIFT:
             result = bsdfdata.secondarySpecularShift.xxx;
             break;
-        case DEBUGVIEW_HAIR_BSDFDATA_PRIMARY_REFLECTION_ROUGHNESS:
-            result = bsdfdata.primaryReflectionRoughness.xxx;
+        case DEBUGVIEW_HAIR_BSDFDATA_ROUGHNESS_PRIMARY_REFLECTION:
+            result = bsdfdata.roughnessPrimaryReflection.xxx;
             break;
         case DEBUGVIEW_HAIR_BSDFDATA_IOR:
             result = bsdfdata.ior.xxx;

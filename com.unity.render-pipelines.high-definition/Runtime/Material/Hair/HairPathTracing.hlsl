@@ -5,9 +5,27 @@
 // Disney Reference
 // --------------------------------------------------------------------------------------
 
+float RoughnessToLongitudinalVariance(float roughness)
+{
+    float beta = roughness;
+    float v = (0.726 * beta) + (0.812 * beta * beta) * (3.7 * pow(beta, 20.0));
+    return v * v;
+}
+
+float RoughnessToLogisticalScale(float roughness)
+{
+    float beta = roughness;
+    return (0.265 * beta) + (1.194 * beta * beta) + (5.372 * pow(beta, 22.0));
+}
+
+float Attenuation()
+{
+    return 0;
+}
+
 float HyperbolicCosecant(float x)
 {
-    return 1 / sinh(x);
+    return rcp(sinh(x));
 }
 
 // Modified Bessel Function of the First Kind
@@ -26,8 +44,22 @@ float BesselI(float x)
     return bessel;
 }
 
+float AzimuthalDirection(uint p, float etaPrime, float h)
+{
+    float gammaI = asin(h);
+    float gammaT = asin(h / etaPrime);
+    return (2 * p * gammaT) - (2 * gammaI) + (p * PI);
+}
+
+// Ref: A Practical and Controllable Hair and Fur Model for Production Path Tracing
+// https://www.desmos.com/calculator/cmy0eig6ln
+float LogisticAzimuthalAngularDistribution(float s, float phi)
+{
+    return 0;
+}
+
 // Ref: An Energy-Conserving Hair Reflectance Model
-// https://www.desmos.com/calculator/val4bnkeqy
+// https://www.desmos.com/calculator/qamyefnrki
 float LongitudinalScattering(float variance, float thetaI, float thetaR)
 {
     float a = HyperbolicCosecant(1.0 / variance) / 2 * variance;
@@ -36,11 +68,9 @@ float LongitudinalScattering(float variance, float thetaI, float thetaR)
     return a * b * c;
 }
 
-// Ref: An Energy-Conserving Hair Reflectance Model
-// https://www.desmos.com/calculator/piy9dqbjot
-void AzimuthalScattering(uint p)
+float AzimuthalScattering(uint p)
 {
-
+    return 0;
 }
 
 // --------------------------------------------------------------------------------------
@@ -73,9 +103,20 @@ void EvaluateMaterial(MaterialData mtlData, float3 sampleDir, out MaterialResult
 {
     Init(result);
 
-    result.specValue = LongitudinalScattering(0.02, 0.5, 0.5);
+    float v = RoughnessToLongitudinalVariance(mtlData.bsdfData.roughnessT);
+    float s = RoughnessToLogisticalScale(mtlData.bsdfData.roughnessB);
 
-    // BRDF::EvaluateLambert(mtlData, sampleDir, result.diffValue, result.diffPdf);
+    float3 V = mtlData.V;
+    float3 L = sampleDir;
+
+    // TEMP: Get pure angles for now, optimize later.
+    float thetaI;
+    float thetaR;
+
+    result.specValue  = LongitudinalScattering(v, 0.0, 0.0); // * AzimuthalScattering(0, s); // R
+    // result.specValue += LongitudinalScattering(0.0, 0.0, 0.0) * AzimuthalScattering(); // TT
+    // result.specValue += LongitudinalScattering(0.0, 0.0, 0.0) * AzimuthalScattering(); // TRT
+    // result.specValue += LongitudinalScattering(0.0, 0.0, 0.0) * AzimuthalScattering(); // TRRT
 }
 
 bool SampleMaterial(MaterialData mtlData, float3 inputSample, out float3 sampleDir, out MaterialResult result)
@@ -83,15 +124,6 @@ bool SampleMaterial(MaterialData mtlData, float3 inputSample, out float3 sampleD
     Init(result);
 
     // TODO
-
-    float3 value;
-    float pdf;
-
-    if (!BRDF::SampleLambert(mtlData, inputSample, sampleDir, value, pdf))
-        return false;
-
-    result.diffValue = value;
-    result.diffPdf = pdf;
 
     return false;
 }

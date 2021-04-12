@@ -74,11 +74,11 @@ namespace UnityEngine.Rendering.HighDefinition
 
             // Marschner
             [SurfaceDataAttributes("Longitudinal Roughness")]
-            public float longitudinalRoughness;
+            public float roughnessLongitudinal;
             [SurfaceDataAttributes("Azimuthal Roughness")]
-            public float azimuthalRoughness;
+            public float roughnessAzimuthal;
             [SurfaceDataAttributes("Primary Reflection Roughness")]
-            public float primaryReflectionRoughness;
+            public float roughnessPrimaryReflection;
             [SurfaceDataAttributes("Refraction Index")]
             public float ior;
             [SurfaceDataAttributes("Cuticle Angle")]
@@ -136,7 +136,7 @@ namespace UnityEngine.Rendering.HighDefinition
             public float secondarySpecularShift;
 
             // Marschner
-            public float primaryReflectionRoughness;
+            public float roughnessPrimaryReflection;
             public float ior;
             public float cuticleAngle;
         };
