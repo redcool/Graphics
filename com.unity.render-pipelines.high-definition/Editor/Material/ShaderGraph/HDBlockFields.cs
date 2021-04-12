@@ -118,7 +118,7 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
             public static BlockFieldDescriptor PrimaryReflectionRoughness = new BlockFieldDescriptor(SurfaceDescription.name, "PrimaryReflectionRoughness", "Primary Reflection Roughness", "SURFACEDESCRIPTION_PRIMARYREFLECTIONROUGHNESS",
                 new FloatControl(1f), ShaderStage.Fragment);
             public static BlockFieldDescriptor CuticleAngle = new BlockFieldDescriptor(SurfaceDescription.name, "CuticleAngle", "Cuticle Angle", "SURFACEDESCRIPTION_CUTICLEANGLE",
-                new FloatControl(0.5f), ShaderStage.Fragment);
+                new FloatControl(1.55f), ShaderStage.Fragment);
 
             // --------------------------------------------------
             // StackLit

@@ -64,6 +64,9 @@
 #define DEBUGVIEW_HAIR_BSDFDATA_SECONDARY_SPECULAR_EXPONENT (1472)
 #define DEBUGVIEW_HAIR_BSDFDATA_SPECULAR_SHIFT (1473)
 #define DEBUGVIEW_HAIR_BSDFDATA_SECONDARY_SPECULAR_SHIFT (1474)
+#define DEBUGVIEW_HAIR_BSDFDATA_PRIMARY_REFLECTION_ROUGHNESS (1475)
+#define DEBUGVIEW_HAIR_BSDFDATA_IOR (1476)
+#define DEBUGVIEW_HAIR_BSDFDATA_CUTICLE_ANGLE (1477)
 
 // Generated from UnityEngine.Rendering.HighDefinition.Hair+SurfaceData
 // PackingRules = Exact
@@ -118,6 +121,9 @@ struct BSDFData
     float secondarySpecularExponent;
     float specularShift;
     float secondarySpecularShift;
+    float primaryReflectionRoughness;
+    float ior;
+    float cuticleAngle;
 };
 
 //
@@ -281,6 +287,15 @@ void GetGeneratedBSDFDataDebug(uint paramId, BSDFData bsdfdata, inout float3 res
             break;
         case DEBUGVIEW_HAIR_BSDFDATA_SECONDARY_SPECULAR_SHIFT:
             result = bsdfdata.secondarySpecularShift.xxx;
+            break;
+        case DEBUGVIEW_HAIR_BSDFDATA_PRIMARY_REFLECTION_ROUGHNESS:
+            result = bsdfdata.primaryReflectionRoughness.xxx;
+            break;
+        case DEBUGVIEW_HAIR_BSDFDATA_IOR:
+            result = bsdfdata.ior.xxx;
+            break;
+        case DEBUGVIEW_HAIR_BSDFDATA_CUTICLE_ANGLE:
+            result = bsdfdata.cuticleAngle.xxx;
             break;
     }
 }

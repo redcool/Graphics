@@ -170,6 +170,16 @@ BSDFData ConvertSurfaceDataToBSDFData(uint2 positionSS, SurfaceData surfaceData)
         bsdfData.anisotropy = 0.8; // For hair we fix the anisotropy
     }
 
+    // Marschner
+    if (HasFlag(surfaceData.materialFeatures, MATERIALFEATUREFLAGS_HAIR_MARSCHNER))
+    {
+        // TODO: Disney parametrization of roughness and scattering.
+        bsdfData.roughnessT = surfaceData.longitudinalRoughness;
+        bsdfData.roughnessB = surfaceData.azimuthalRoughness;
+        bsdfData.ior = surfaceData.ior;
+        bsdfData.cuticleAngle = surfaceData.cuticleAngle;
+    }
+
     ApplyDebugToBSDFData(bsdfData);
 
     return bsdfData;

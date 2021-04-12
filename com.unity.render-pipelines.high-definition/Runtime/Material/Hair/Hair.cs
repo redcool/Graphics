@@ -134,6 +134,11 @@ namespace UnityEngine.Rendering.HighDefinition
             public float secondarySpecularExponent;
             public float specularShift;
             public float secondarySpecularShift;
+
+            // Marschner
+            public float primaryReflectionRoughness;
+            public float ior;
+            public float cuticleAngle;
         };
 
 
