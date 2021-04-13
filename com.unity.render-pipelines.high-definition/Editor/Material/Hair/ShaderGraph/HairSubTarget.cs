@@ -95,6 +95,7 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
             }
             else
             {
+                context.AddBlock(HDBlockFields.SurfaceDescription.HairStrandDirection);
                 context.AddBlock(HDBlockFields.SurfaceDescription.LongitudinalRoughness);
                 context.AddBlock(HDBlockFields.SurfaceDescription.AzimuthalRoughness);
                 context.AddBlock(HDBlockFields.SurfaceDescription.PrimaryReflectionRoughness);

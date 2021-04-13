@@ -28,20 +28,34 @@ float HyperbolicCosecant(float x)
     return rcp(sinh(x));
 }
 
+// Precompute the factorials (should really precompute the squared value).
+static const float FACTORIAL[11] = { 1.0,
+                                     1.0,
+                                     2.0,
+                                     6.0,
+                                     24.0,
+                                     120.0,
+                                     720.0,
+                                     5040.0,
+                                     40320.0,
+                                     362880.0,
+                                     3628800.0 };
+
 // Modified Bessel Function of the First Kind
 float BesselI(float x)
 {
-    // Compute directly from the series for N = 10.
-    const float tenFactSquared = 1.3168189e+13;
+    float b = 0;
 
-    float bessel = 0;
-
-    for (int n = 0; n < 10; ++n)
+    for (int i = 0; i <= 10; ++i)
     {
-        bessel += pow(0.25 * x * x, 10.0) / tenFactSquared;
+        const float f = FACTORIAL[i];
+        b += pow(x, 2.0 * i) / (pow(4, i) * f * f);
+
+        // TODO: Confirm this is correct + cheaper.
+        // b += pow(0.25 * x * x, i) / (f * f);
     }
 
-    return bessel;
+    return b;
 }
 
 float AzimuthalDirection(uint p, float etaPrime, float h)
@@ -62,7 +76,7 @@ float LogisticAzimuthalAngularDistribution(float s, float phi)
 // https://www.desmos.com/calculator/qamyefnrki
 float LongitudinalScattering(float variance, float thetaI, float thetaR)
 {
-    float a = HyperbolicCosecant(1.0 / variance) / 2 * variance;
+    float a = HyperbolicCosecant(1.0 / variance) / (2 * variance);
     float b = exp((sin(-thetaI) * sin(thetaR)) / variance);
     float c = BesselI((cos(-thetaI) * cos(thetaR)) / variance);
     return a * b * c;
@@ -103,20 +117,37 @@ void EvaluateMaterial(MaterialData mtlData, float3 sampleDir, out MaterialResult
 {
     Init(result);
 
-    float v = RoughnessToLongitudinalVariance(mtlData.bsdfData.roughnessT);
-    float s = RoughnessToLogisticalScale(mtlData.bsdfData.roughnessB);
-
+    float3 T = mtlData.bsdfData.hairStrandDirectionWS;
+    float3 N = mtlData.bsdfData.normalWS;
     float3 V = mtlData.V;
     float3 L = sampleDir;
 
-    // TEMP: Get pure angles for now, optimize later.
-    float thetaI;
-    float thetaR;
+    float TdotL = dot(T, L);
+    float TdotV = dot(T, V);
+    float NdotL = dot(N, L);
+    float NdotV = dot(N, V);
 
-    result.specValue  = LongitudinalScattering(v, 0.0, 0.0); // * AzimuthalScattering(0, s); // R
+    // TEMP: Deal in pure angles for now, optimize later.
+    float thetaI = asin(TdotL);
+    float thetaR = asin(TdotV);
+    float phiI   = acos(NdotL);
+    float phiR   = acos(NdotV);
+    float phi    = phiR - phiI;
+
+    // TODO: Move to ConvertSurfaceDataToBSDFData
+    float v = RoughnessToLongitudinalVariance(mtlData.bsdfData.roughnessT);
+    float s = RoughnessToLogisticalScale(mtlData.bsdfData.roughnessB);
+
+    const float shiftR  = mtlData.bsdfData.cuticleAngle;
+    const float shiftTT = -shiftR / 2.0;
+    const float shiftTRT = 3 * -shiftR / 2.0;
+
+    result.specValue  = LongitudinalScattering(v, thetaI, thetaR - shiftR) * (0.25 * abs(cos(phi * 0.5))); // * AzimuthalScattering(0, s); // R
     // result.specValue += LongitudinalScattering(0.0, 0.0, 0.0) * AzimuthalScattering(); // TT
     // result.specValue += LongitudinalScattering(0.0, 0.0, 0.0) * AzimuthalScattering(); // TRT
     // result.specValue += LongitudinalScattering(0.0, 0.0, 0.0) * AzimuthalScattering(); // TRRT
+
+    // TODO: PDF
 }
 
 bool SampleMaterial(MaterialData mtlData, float3 inputSample, out float3 sampleDir, out MaterialResult result)
