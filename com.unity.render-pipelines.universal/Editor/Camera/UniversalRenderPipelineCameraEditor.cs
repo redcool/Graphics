@@ -137,7 +137,7 @@ namespace UnityEditor.Rendering.Universal
             rect.height = EditorGUIUtility.singleLineHeight;
             rect.y += 1;
 
-            (Camera camera, UniversalRenderPipelineSerializedCamera serializedCamera) overlayCamera = m_SerializedCamera[index];
+            (Camera camera, UniversalRenderPipelineSerializedCamera serializedCamera)overlayCamera = m_SerializedCamera[index];
             Camera cam = overlayCamera.camera;
             if (cam != null)
             {
