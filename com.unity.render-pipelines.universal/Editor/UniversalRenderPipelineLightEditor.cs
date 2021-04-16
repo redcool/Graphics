@@ -1,8 +1,11 @@
+using System;
 using System.Collections.Generic;
 using UnityEditor.AnimatedValues;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.Rendering;
+using System.Linq.Expressions;
+using Object = UnityEngine.Object;
 
 namespace UnityEditor.Rendering.Universal
 {
@@ -49,6 +52,11 @@ namespace UnityEditor.Rendering.Universal
                 new GUIContent("Custom"),
                 new GUIContent("Use Pipeline Settings")
             };
+
+            public readonly GUIContent colorTemperature = new GUIContent("Temperature", "Specifies a temperature (in Kelvin) used to correlate a color for the Light. For reference, White is 6500K.");
+            public readonly GUIContent lightAppearance = new GUIContent("Light Appearance", "Specifies the mode for how this Light's color is calculated.");
+            public readonly GUIContent color = new GUIContent("Color", "Specifies the color this Light emits.");
+            public readonly GUIContent colorFilter = new GUIContent("Filter", "Specifies a color which tints the Light source.");
         }
 
         public bool typeIsSame { get { return !serializedLight.settings.lightType.hasMultipleDifferentValues; } }
@@ -75,6 +83,34 @@ namespace UnityEditor.Rendering.Universal
         public bool isShadowEnabled { get { return serializedLight.settings.shadowsType.intValue != 0; } }
 
         UniversalRenderPipelineSerializedLight serializedLight { get; set; }
+
+        static System.Action<GUIContent, SerializedProperty, LightEditor.Settings> k_SliderWithTexture;
+        static UniversalRenderPipelineLightEditor()
+        {
+            //quicker than standard reflection as it is compiled
+            var paramLabel = Expression.Parameter(typeof(GUIContent), "label");
+            var paramProperty = Expression.Parameter(typeof(SerializedProperty), "property");
+            var paramSettings = Expression.Parameter(typeof(LightEditor.Settings), "settings");
+            System.Reflection.MethodInfo sliderWithTextureInfo = typeof(EditorGUILayout)
+                .GetMethod(
+                "SliderWithTexture",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static,
+                null,
+                System.Reflection.CallingConventions.Any,
+                new[] { typeof(GUIContent), typeof(SerializedProperty), typeof(float), typeof(float), typeof(float), typeof(Texture2D), typeof(GUILayoutOption[]) },
+                null);
+            var sliderWithTextureCall = Expression.Call(
+                sliderWithTextureInfo,
+                paramLabel,
+                paramProperty,
+                Expression.Constant((float)typeof(LightEditor.Settings).GetField("kMinKelvin", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).GetRawConstantValue()),
+                Expression.Constant((float)typeof(LightEditor.Settings).GetField("kMaxKelvin", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).GetRawConstantValue()),
+                Expression.Constant((float)typeof(LightEditor.Settings).GetField("kSliderPower", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).GetRawConstantValue()),
+                Expression.Field(paramSettings, typeof(LightEditor.Settings).GetField("m_KelvinGradientTexture", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)),
+                Expression.Constant(null, typeof(GUILayoutOption[])));
+            var lambda = Expression.Lambda<System.Action<GUIContent, SerializedProperty, LightEditor.Settings>>(sliderWithTextureCall, paramLabel, paramProperty, paramSettings);
+            k_SliderWithTexture = lambda.Compile();
+        }
 
         protected override void OnEnable()
         {
@@ -112,7 +148,7 @@ namespace UnityEditor.Rendering.Universal
             if (areaOptionsValue)
                 serializedLight.settings.DrawArea();
 
-            serializedLight.settings.DrawColor();
+            DrawColor();
 
             EditorGUILayout.Space();
 
@@ -146,6 +182,34 @@ namespace UnityEditor.Rendering.Universal
             }
 
             serializedLight.Apply();
+        }
+
+        void DrawColor()
+        {
+            using (var changes = new EditorGUI.ChangeCheckScope())
+            {
+                if (GraphicsSettings.lightsUseLinearIntensity && GraphicsSettings.lightsUseColorTemperature)
+                {
+                    // Use the color temperature bool to create a popup dropdown to choose between the two modes.
+                    var colorTemperaturePopupValue = Convert.ToInt32(settings.useColorTemperature.boolValue);
+                    var lightAppearanceOptions = new[] { "Color", "Filter and Temperature" };
+                    colorTemperaturePopupValue = EditorGUILayout.Popup(s_Styles.lightAppearance, colorTemperaturePopupValue, lightAppearanceOptions);
+                    settings.useColorTemperature.boolValue = Convert.ToBoolean(colorTemperaturePopupValue);
+
+                    using (new EditorGUI.IndentLevelScope())
+                    {
+                        if (settings.useColorTemperature.boolValue)
+                        {
+                            EditorGUILayout.PropertyField(settings.color, s_Styles.colorFilter);
+                            k_SliderWithTexture(s_Styles.colorTemperature, settings.colorTemperature, settings);
+                        }
+                        else
+                            EditorGUILayout.PropertyField(settings.color, s_Styles.color);
+                    }
+                }
+                else
+                    EditorGUILayout.PropertyField(settings.color, s_Styles.color);
+            }
         }
 
         void CheckLightmappingConsistency()
