@@ -6,29 +6,19 @@ using UnityEngine.Rendering;
 #if ENABLE_NVIDIA_MODULE
 namespace UnityEngine.NVIDIA
 {
-    /// <summary>
-    /// Helper class for Scriptable Rendering Pipelines (SRPs) to see internal debug information of NVIDIA Deep Learning Super Sampling (DLSS).
-    /// </summary>
-    public class DebugView
+    internal class DebugView
     {
-        #region Public API
+        #region Main Internal Methods
 
-        /// <summary>
-        /// Resets the user interface state of this debug view.
-        /// </summary>
-        public void Reset() { InternalReset(); }
+        internal void Reset() { InternalReset(); }
 
-        /// <summary>
-        /// Updates the user interface data / state. Call this once per frame or whichever frequency to see updates in the UI widget.
-        /// </summary>
-        public void Update() { InternalUpdate(); }
+        internal void Update() { InternalUpdate(); }
 
-        /// <summary>
-        /// Creates a widget object containing the debug information of the NVIDIA Unity Plugin state.
-        /// </summary>
-        public DebugUI.Widget CreateWidget() { return InternalCreateWidget(); }
+        internal DebugUI.Widget CreateWidget() { return InternalCreateWidget(); }
 
         #endregion
+
+        #region Private implementation
 
         private enum DeviceState
         {
@@ -131,6 +121,8 @@ namespace UnityEngine.NVIDIA
 
             return targetArray;
         }
+
+        #endregion
 
         #region Debug User Interface
 

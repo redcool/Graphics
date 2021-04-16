@@ -51,7 +51,7 @@ namespace UnityEngine.Rendering
         private bool m_CurrentCameraRequest;
         private float m_PrevFraction;
         private bool m_ForceSoftwareFallback;
-        private bool m_AllowDynamicResolutionOnAllPercentages;
+        private bool m_RunUpscalerFilterOnFullResolution;
 
         private float m_PrevHWScaleWidth;
         private float m_PrevHWScaleHeight;
@@ -67,7 +67,7 @@ namespace UnityEngine.Rendering
             m_CurrentCameraRequest = true;
             m_PrevFraction = -1.0f;
             m_ForceSoftwareFallback = false;
-            m_AllowDynamicResolutionOnAllPercentages = false;
+            m_RunUpscalerFilterOnFullResolution = false;
 
             m_PrevHWScaleWidth = 1.0f;
             m_PrevHWScaleHeight = 1.0f;
@@ -108,9 +108,9 @@ namespace UnityEngine.Rendering
         /// For certain upscalers, we dont want this behavior since they could possibly include anti aliasing and other quality improving post processes.
         /// Setting this to true will eliminate this behavior.
         /// </summary>
-        public bool allowDynamicResolutionOnAllPercentages
+        public bool runUpscalerFilterOnFullResolution
         {
-            set { m_AllowDynamicResolutionOnAllPercentages = value; }
+            set { m_RunUpscalerFilterOnFullResolution = value; }
         }
 
         private DynamicResolutionType type;
@@ -292,7 +292,7 @@ namespace UnityEngine.Rendering
         }
 
         /// <summary>
-        /// Set the scaler method used to drive dynamic resolution internally from the Scriptable Rendering Pipeline. This function should only be called by Scriptable Rendering Pipeline. 
+        /// Set the scaler method used to drive dynamic resolution internally from the Scriptable Rendering Pipeline. This function should only be called by Scriptable Rendering Pipeline.
         /// </summary>
         /// <param name="scaler">The delegate used to determine the resolution percentage used by the dynamic resolution system.</param>
         /// <param name="scalerType">The type of scaler that is used, this is used to indicate the return type of the scaler to the dynamic resolution system.</param>
@@ -302,9 +302,10 @@ namespace UnityEngine.Rendering
         }
 
         /// <summary>
-        /// Set the active dynamic scaler.
+        /// Sets the active dynamic scaler slot to be used by the runtime when calculating frame resolutions.
+        /// See DynamicResScalerSlot for more information.
         /// </summary>
-        /// <param name="source">The scaler to be selected and used by the runtime.</param>
+        /// <param name="slot">The scaler to be selected and used by the runtime.</param>
         static public void SetActiveDynamicScalerSlot(DynamicResScalerSlot slot)
         {
             s_ActiveScalerSlot = slot;
@@ -418,7 +419,7 @@ namespace UnityEngine.Rendering
         /// <returns>True: Software dynamic resolution is enabled</returns>
         public bool SoftwareDynamicResIsEnabled()
         {
-            return m_CurrentCameraRequest && m_Enabled && (m_CurrentFraction != 1.0f || m_AllowDynamicResolutionOnAllPercentages) && (m_ForceSoftwareFallback || type == DynamicResolutionType.Software);
+            return m_CurrentCameraRequest && m_Enabled && (m_CurrentFraction != 1.0f || m_RunUpscalerFilterOnFullResolution) && (m_ForceSoftwareFallback || type == DynamicResolutionType.Software);
         }
 
         /// <summary>
@@ -449,7 +450,7 @@ namespace UnityEngine.Rendering
         public bool DynamicResolutionEnabled()
         {
             //we assume that the DRS schedule takes care of anti aliasing. Thus we dont care if the fraction requested is 1.0
-            return m_CurrentCameraRequest && m_Enabled && (m_CurrentFraction != 1.0f || m_AllowDynamicResolutionOnAllPercentages);
+            return m_CurrentCameraRequest && m_Enabled && (m_CurrentFraction != 1.0f || m_RunUpscalerFilterOnFullResolution);
         }
 
         /// <summary>
@@ -482,7 +483,7 @@ namespace UnityEngine.Rendering
 
         /// <summary>
         /// Applies to the passed size the scale imposed by the dynamic resolution system.
-        /// This function uses the internal resolved scale from the DRS system.
+        /// This function uses the internal resolved scale from the dynamic resolution system.
         /// Note: this function is pure (has no side effects), this function does not cache the pre-scale size
         /// </summary>
         /// <param name="size">The size to apply the scaling</param>
