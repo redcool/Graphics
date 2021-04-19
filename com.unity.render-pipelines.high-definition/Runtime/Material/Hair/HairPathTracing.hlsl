@@ -10,6 +10,7 @@ struct ReferenceInputs
     float thetaI;
     float thetaR;
     float thetaD;
+    float thetaT;
 
     float phiI;
     float phiR;
@@ -17,7 +18,6 @@ struct ReferenceInputs
 
     float LdotV;
 
-    // Fiber axis offset
     float h;
 
     float eta;
@@ -91,17 +91,27 @@ float BesselI(float x)
     return b;
 }
 
+// Remap the azimuthal direction to the normalized logistic function on -PI to PI.
+float RemapLogisticAngle(float a)
+{
+    if (a < -PI)
+        a += TWO_PI;
+
+    if (a > +PI)
+        a -= TWO_PI;
+
+    return a;
+}
+
 // Ref: Light Scattering from Human Hair Fibers
 float AzimuthalDirection(uint p, float etaPrime, float h)
 {
     float gammaI = asin(h);
     float gammaT = asin(h / etaPrime);
+    float omega = (2 * p * gammaT) - (2 * gammaI) + p * PI;
 
-    // TODO: Understand why it is necesarry to exclude pi for p >= 2.
-    // The original formulation from Marschner does not do this, but in
-    // "Photo-Realistic Rendering of Blonde Hair" they do not include the PI term
-    // for TRT, and it solved a problem here where the TRT term was being surpressed.
-    return (2 * p * gammaT) - (2 * gammaI) + (p < 2 ? (p * PI) : 0);
+    // Remap to the logistic function.
+    return RemapLogisticAngle(omega);
 }
 
 float3 Attenuation(uint p, float h, float LdotV, float thetaD, float etaPrime, float3 absorption)
@@ -118,7 +128,14 @@ float3 Attenuation(uint p, float h, float LdotV, float thetaD, float etaPrime, f
         float f = FresnelHair(acos(cos(thetaD) * cos(asin(h))));
         float gammaT = asin(h / etaPrime);
         float3 T = exp(-2 * absorption * (1 + cos(2 * gammaT)));
-        A = pow(1 - f, 2.0) * pow(f, p - 1) * pow(T, p);
+
+        // NOTE: This can't be used this due to NaNs via pow(f, 0)..
+        // A = pow(1 - f, 2.0) * pow(f, p - 1) * pow(T, p);
+
+        if (p == 1)
+            A = pow(1 - f, 2.0) * T;
+        else
+            A = pow(1 - f, 2.0) * f * (T * T);
     }
 
     return A;
@@ -148,7 +165,7 @@ float LogisticAzimuthalAngularDistribution(float s, float phi)
 // Plot: https://www.desmos.com/calculator/jmf1ofgfdv
 float LongitudinalScattering(uint p, ReferenceInputs inputs)
 {
-    const float v      = inputs.variances[p];
+    const float v      = max(0.0001, inputs.variances[p]);
     const float thetaI = inputs.thetaI;
     const float thetaR = inputs.thetaR - radians(inputs.shifts[p]);
 
@@ -240,18 +257,15 @@ void EvaluateMaterial(MaterialData mtlData, float3 sampleDir, out MaterialResult
 {
     Init(result);
 
-    // U is the vector tangent of the hair, pointing from root toward the tip
+    // Construct a local frame with respect to strand and outgoing direction
     float3 U = mtlData.bsdfData.hairStrandDirectionWS;
+    float3 V = normalize(cross(U, mtlData.V));
+    float3 W = normalize(cross(U, V));
 
-    float3 L = sampleDir;
-    float3 V = mtlData.V;
-
-    float LdotV = dot(L, V);
-    float UdotL = dot(U, L);
-    float UdotV = dot(U, V);
-
-    float3 LProj = normalize(L - UdotL * U);
-    float3 VProj = normalize(V - UdotV * U);
+    // Transform to the local frame
+    float3x3 frame = float3x3(W, V, U);
+    float3 I = mul(frame, sampleDir);
+    float3 R = mul(frame, mtlData.V);
 
     ReferenceInputs inputs;
     ZERO_INITIALIZE(ReferenceInputs, inputs);
@@ -260,9 +274,14 @@ void EvaluateMaterial(MaterialData mtlData, float3 sampleDir, out MaterialResult
     // Notation Ref: Light Scattering from Human Hair Fibers
     {
         // Longitudinal
-        inputs.thetaI = HALF_PI - acos(UdotL);
-        inputs.thetaR = HALF_PI - acos(UdotV);
+        inputs.thetaI = HALF_PI - acos(I.z);
+        inputs.thetaR = HALF_PI - acos(R.z);
         inputs.thetaD = (inputs.thetaR - inputs.thetaI) * 0.5;
+
+        // Azimuthal
+        float phiI = atan2(I.y, I.x);
+        float phiR = atan2(R.y, R.x);
+        inputs.phi = phiR - phiI;
 
         // TODO: Move to ConvertSurfaceDataToBSDFData
         // Only the first lobe is attenuated by primary reflection roughness.
@@ -275,21 +294,19 @@ void EvaluateMaterial(MaterialData mtlData, float3 sampleDir, out MaterialResult
         inputs.shifts[1] = -inputs.shifts[0] / 2.0;
         inputs.shifts[2] = 3 * -inputs.shifts[0] / 2.0;
 
-        // Azimuthal
-        // Don't necesarrily care about PhiI / PhiR since we only need their relation.
-        inputs.phi    = acos(dot(LProj, VProj));
         inputs.eta    = mtlData.bsdfData.ior;
         inputs.etaP   = ModifiedIOR(inputs.eta, inputs.thetaD);
-        inputs.LdotV  = LdotV;
+
+        inputs.LdotV  = dot(sampleDir, mtlData.V);
 
         // Evaluation of h in the normal plane, given by gammaI = asin(h), where gammaI is the incident angle.
         // Since we are using a near-field method, we can use the true h value (rather than integrating over the whole fiber width).
-        inputs.h = sin(acos(dot(mtlData.bsdfData.normalWS, LProj)));
+        inputs.h = sin(acos(dot(cross(mtlData.bsdfData.normalWS, U), frame[1])));
 
         inputs.logisticScale = RoughnessToLogisticalScale(mtlData.bsdfData.roughnessB);
 
-        // TODO: Attenuate absorption by cos(thetaT).
-        inputs.absorptionP = mtlData.bsdfData.transmittance;
+        float thetaT = asin(sin(inputs.thetaR / inputs.eta));
+        inputs.absorptionP = mtlData.bsdfData.transmittance / cos(thetaT);
     }
 
     float3 S = 0;
@@ -305,17 +322,18 @@ void EvaluateMaterial(MaterialData mtlData, float3 sampleDir, out MaterialResult
         S += LongitudinalScattering(p, inputs) * AzimuthalScattering(p, inputs);
     }
 
-    // TODO: Importance Sample / PDF
     result.specValue = S;
+
+    // TODO: Importance Sample
+    result.specPdf = INV_FOUR_PI;
 }
 
 bool SampleMaterial(MaterialData mtlData, float3 inputSample, out float3 sampleDir, out MaterialResult result)
 {
     Init(result);
 
-    // TODO: Importance Sample / PDF
-    if (!BTDF::SampleLambert(mtlData, inputSample, sampleDir, result.specValue, result.specPdf))
-        return false;
+    sampleDir = SampleSphereUniform(inputSample.x, inputSample.y);
+    EvaluateMaterial(mtlData, sampleDir, result);
 
     return false;
 }
