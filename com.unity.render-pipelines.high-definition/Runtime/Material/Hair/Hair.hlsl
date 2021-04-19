@@ -505,12 +505,78 @@ DirectLighting EvaluateBSDF_Line(   LightLoopContext lightLoopContext,
 // EvaluateBSDF_Rect
 //-----------------------------------------------------------------------------
 
+//custom-begin: hair and fabric hack for area lights - remove when area lights are fixed for these materials
+DirectLighting ShadeSurface_Punctual_With_Area_Light_Shadows(LightLoopContext lightLoopContext,
+                                     PositionInputs posInput, BuiltinData builtinData,
+                                     PreLightData preLightData, LightData light,
+                                     BSDFData bsdfData, float3 V)
+{
+    DirectLighting lighting;
+    ZERO_INITIALIZE(DirectLighting, lighting);
+
+    float3 L;
+    float4 distances; // {d, d^2, 1/d, d_proj}
+    GetPunctualLightVectors(posInput.positionWS, light, L, distances);
+
+    // Is it worth evaluating the light?
+    if ((light.lightDimmer > 0) && IsNonZeroBSDF(V, L, preLightData, bsdfData))
+    {
+        float4 lightColor = EvaluateLight_Punctual(lightLoopContext, posInput, light, L, distances);
+        lightColor.rgb *= lightColor.a; // Composite
+
+#ifdef MATERIAL_INCLUDE_TRANSMISSION
+        if (ShouldEvaluateThickObjectTransmission(V, L, preLightData, bsdfData, light.shadowIndex))
+        {
+            // Replace the 'baked' value using 'thickness from shadow'.
+            bsdfData.transmittance = EvaluateTransmittance_Punctual(lightLoopContext, posInput,
+                                                                    bsdfData, light, L, distances);
+        }
+        else
+#endif
+        {
+            // This code works for both surface reflection and thin object transmission.
+            SHADOW_TYPE shadow = EvaluateShadow_RectArea(lightLoopContext, posInput, light, builtinData, GetNormalForShadowBias(bsdfData), L, distances);
+            lightColor.rgb *= ComputeShadowColor(shadow, light.shadowTint, light.penumbraTint);
+
+#ifdef DEBUG_DISPLAY
+            // The step with the attenuation is required to avoid seeing the screen tiles at the end of lights because the attenuation always falls to 0 before the tile ends.
+            // Note: g_DebugShadowAttenuation have been setup in EvaluateShadow_Punctual
+            if (_DebugShadowMapMode == SHADOWMAPDEBUGMODE_SINGLE_SHADOW && light.shadowIndex == _DebugSingleShadowIndex)
+                g_DebugShadowAttenuation *= step(FLT_EPS, lightColor.a);
+#endif
+        }
+
+        // Simulate a sphere/disk light with this hack.
+        // Note that it is not correct with our precomputation of PartLambdaV
+        // (means if we disable the optimization it will not have the
+        // same result) but we don't care as it is a hack anyway.
+        ClampRoughness(preLightData, bsdfData, light.minRoughness);
+
+        lighting = ShadeSurface_Infinitesimal(preLightData, bsdfData, V, L, lightColor.rgb,
+                                              light.diffuseDimmer, light.specularDimmer);
+    }
+
+    return lighting;
+}
+//custom-end
+
 DirectLighting EvaluateBSDF_Rect(   LightLoopContext lightLoopContext,
                                     float3 V, PositionInputs posInput,
                                     PreLightData preLightData, LightData lightData, BSDFData bsdfData, BuiltinData builtinData)
 {
     DirectLighting lighting;
     ZERO_INITIALIZE(DirectLighting, lighting);
+
+//custom-begin: hair and fabric hack for area lights - remove when area lights are fixed for these materials
+    lightData.color *= lightData.size.x * lightData.size.y;
+    lightData.size = float4(0.01, 0, 0, 0);
+    lightData.rangeAttenuationScale = 1.0f / (lightData.range * lightData.range);
+
+    // ignore the cookie, since point light will just work like a projector :/
+    lightData.cookieMode = COOKIEMODE_NONE;
+
+    return ShadeSurface_Punctual_With_Area_Light_Shadows(lightLoopContext, posInput, builtinData, preLightData, lightData, bsdfData, V);
+//custom-end
 
     float3 positionWS = posInput.positionWS;
 
