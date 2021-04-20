@@ -88,8 +88,8 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
                     { SpriteLitPasses.Lit },
                     { SpriteLitPasses.Normal },
                     { SpriteLitPasses.Forward },
-                    { UniversalSpriteSubTargetShared.SpriteSharedPasses.SceneSelection },
-                    { UniversalSpriteSubTargetShared.SpriteSharedPasses.ScenePicking },
+                    { CorePasses._2DSceneSelection },
+                    { CorePasses._2DScenePicking },
                 },
             };
         }

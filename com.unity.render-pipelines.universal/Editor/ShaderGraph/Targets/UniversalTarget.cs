@@ -405,7 +405,7 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
             displayName = "SceneSelectionPass",
             referenceName = "SHADERPASS_DEPTHONLY",
             lightMode = "SceneSelectionPass",
-            useInPreview = true,
+            useInPreview = false,
 
             // Template
             passTemplatePath = GenerationUtils.GetDefaultTemplatePath("PassMesh.template"),
@@ -435,7 +435,7 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
             displayName = "ScenePickingPass",
             referenceName = "SHADERPASS_DEPTHONLY",
             lightMode = "Picking",
-            useInPreview = true,
+            useInPreview = false,
 
             // Template
             passTemplatePath = GenerationUtils.GetDefaultTemplatePath("PassMesh.template"),
@@ -454,6 +454,66 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
             pragmas = CorePragmas.Instanced,
             defines = CoreDefines.ScenePicking,
             includes = CoreIncludes.ScenePicking,
+
+            // Custom Interpolator Support
+            customInterpolators = CoreCustomInterpDescriptors.Common
+        };
+
+        public static readonly PassDescriptor _2DSceneSelection = new PassDescriptor()
+        {
+            // Definition
+            displayName = "SceneSelectionPass",
+            referenceName = "SHADERPASS_DEPTHONLY",
+            lightMode = "SceneSelectionPass",
+            useInPreview = false,
+
+            // Template
+            passTemplatePath = GenerationUtils.GetDefaultTemplatePath("PassMesh.template"),
+            sharedTemplateDirectories = GenerationUtils.GetDefaultSharedTemplateDirectories(),
+
+            // Port Mask
+            validVertexBlocks = CoreBlockMasks.Vertex,
+            validPixelBlocks = CoreBlockMasks.FragmentAlphaOnly,
+
+            // Fields
+            structs = CoreStructCollections.Default,
+            fieldDependencies = CoreFieldDependencies.Default,
+
+            // Conditional State
+            renderStates = CoreRenderStates.SceneSelection,
+            pragmas = CorePragmas._2DDefault,
+            defines = CoreDefines.SceneSelection,
+            includes = CoreIncludes._2DDepthOnly,
+
+            // Custom Interpolator Support
+            customInterpolators = CoreCustomInterpDescriptors.Common
+        };
+
+        public static readonly PassDescriptor _2DScenePicking = new PassDescriptor()
+        {
+            // Definition
+            displayName = "ScenePickingPass",
+            referenceName = "SHADERPASS_DEPTHONLY",
+            lightMode = "Picking",
+            useInPreview = false,
+
+            // Template
+            passTemplatePath = GenerationUtils.GetDefaultTemplatePath("PassMesh.template"),
+            sharedTemplateDirectories = GenerationUtils.GetDefaultSharedTemplateDirectories(),
+
+            // Port Mask
+            validVertexBlocks = CoreBlockMasks.Vertex,
+            validPixelBlocks = CoreBlockMasks.FragmentAlphaOnly,
+
+            // Fields
+            structs = CoreStructCollections.Default,
+            fieldDependencies = CoreFieldDependencies.Default,
+
+            // Conditional State
+            renderStates = CoreRenderStates.ScenePicking,
+            pragmas = CorePragmas._2DDefault,
+            defines = CoreDefines.ScenePicking,
+            includes = CoreIncludes._2DDepthOnly,
 
             // Custom Interpolator Support
             customInterpolators = CoreCustomInterpDescriptors.Common
@@ -694,6 +754,7 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
         const string kDepthNormalsOnlyPass = "Packages/com.unity.render-pipelines.universal/Editor/ShaderGraph/Includes/DepthNormalsOnlyPass.hlsl";
         const string kShadowCasterPass = "Packages/com.unity.render-pipelines.universal/Editor/ShaderGraph/Includes/ShadowCasterPass.hlsl";
         const string kTextureStack = "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl";
+        const string kSpriteDepthOnlyPass = "Packages/com.unity.render-pipelines.universal/Editor/2D/ShaderGraph/Includes/SpriteDepthOnlyPass.hlsl";
 
         public static readonly IncludeCollection CorePregraph = new IncludeCollection
         {
@@ -768,6 +829,17 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
             // Post-graph
             { CorePostgraph },
             { kDepthOnlyPass, IncludeLocation.Postgraph },
+        };
+
+        public static IncludeCollection _2DDepthOnly = new IncludeCollection
+        {
+            // Pre-graph
+            { CoreIncludes.CorePregraph },
+            { CoreIncludes.ShaderGraphPregraph },
+
+            // Post-graph
+            { CoreIncludes.CorePostgraph },
+            { kSpriteDepthOnlyPass, IncludeLocation.Postgraph },
         };
     }
     #endregion
