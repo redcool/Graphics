@@ -13,6 +13,8 @@ struct VaryingsLensFlare
     float4 positionCS : SV_POSITION;
     float2 texcoord : TEXCOORD0;
     float occlusion : TEXCOORD1;
+
+    UNITY_VERTEX_OUTPUT_STEREO
 };
 
 TEXTURE2D(_FlareTex);
@@ -115,10 +117,13 @@ VaryingsLensFlare vert(AttributesLensFlare input, uint instanceID : SV_InstanceI
 {
     VaryingsLensFlare output;
 
+    UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
+
     float screenRatio = _ScreenRatio;
 
     float4 posPreScale = float4(2.0f, 2.0f, 1.0f, 1.0f) * GetQuadVertexPosition(input.vertexID % 6) - float4(1.0f, 1.0f, 0.0f, 0.0);
     output.texcoord = GetQuadTexCoord(input.vertexID % 6);
+    output.texcoord.x = 1.0f - output.texcoord.x;
 
     posPreScale.xy *= _FlareSize;
     float2 local = Rotate(posPreScale.xy, _LocalCos0, _LocalSin0);
@@ -158,15 +163,13 @@ float InverseGradient(float x)
 float4 ComputeCircle(float2 uv)
 {
     float2 v = (uv - 0.5f) * 2.0f;
-    //v /= float2(ddx(v));
+
+    const float epsilon = 1e-3f;
+    const float epsCoef = pow(epsilon, 1.0f / _FlareFalloff);
 
     float x = length(v);
 
-    //float sdf = saturate((x - 1.0f) / (fwidth(1.0f - x)));
     float sdf = saturate((x - 1.0f) / ((_FlareEdgeOffset - 1.0f)));
-    //float sdf = (x - 1.0f) / (_FlareEdgeOffset - 1.0f);
-
-    //sdf /= fwidth(sdf);
 
 #if FLARE_INVERSE_SDF
     sdf = saturate(sdf);
@@ -222,6 +225,8 @@ float4 GetFlareShape(float2 uv)
 
 float4 frag(VaryingsLensFlare input) : SV_Target
 {
+    UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+
     float4 col = GetFlareShape(input.texcoord);
     return col * _FlareColor * input.occlusion;
 }

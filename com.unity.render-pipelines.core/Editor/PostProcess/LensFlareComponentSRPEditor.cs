@@ -5,14 +5,15 @@ using UnityEngine;
 namespace UnityEditor.Rendering
 {
     /// <summary>
-    /// Editor for SRPLensFlareOverride: Lens Flare Data-Driven which can but added on any GameObject
+    /// Editor for LensFlareComponentSRP: Lens Flare Data-Driven which can be added on any GameObject
     /// </summary>
     [CanEditMultipleObjects]
-    [CustomEditor(typeof(SRPLensFlareOverride))]
-    public class SRPLensFlareOverrideEditor : Editor
+    [CustomEditorForRenderPipeline(typeof(LensFlareComponentSRP), typeof(UnityEngine.Rendering.RenderPipelineAsset))]
+    internal class LensFlareComponentSRPEditor : Editor
     {
         SerializedProperty m_LensFlareData;
         SerializedProperty m_Intensity;
+        SerializedProperty m_Scale;
         SerializedProperty m_MaxAttenuationDistance;
         SerializedProperty m_MaxAttenuationScale;
         SerializedProperty m_DistanceAttenuationCurve;
@@ -25,14 +26,12 @@ namespace UnityEditor.Rendering
         SerializedProperty m_OcclusionOffset;
         SerializedProperty m_AllowOffScreen;
 
-        /// <summary>
-        /// Prepare the code for the UI
-        /// </summary>
-        public void OnEnable()
+        void OnEnable()
         {
-            PropertyFetcher<SRPLensFlareOverride> entryPoint = new PropertyFetcher<SRPLensFlareOverride>(serializedObject);
+            PropertyFetcher<LensFlareComponentSRP> entryPoint = new PropertyFetcher<LensFlareComponentSRP>(serializedObject);
             m_LensFlareData = entryPoint.Find("m_LensFlareData");
             m_Intensity = entryPoint.Find(x => x.intensity);
+            m_Scale = entryPoint.Find(x => x.scale);
             m_MaxAttenuationDistance = entryPoint.Find(x => x.maxAttenuationDistance);
             m_DistanceAttenuationCurve = entryPoint.Find(x => x.distanceAttenuationCurve);
             m_MaxAttenuationScale = entryPoint.Find(x => x.maxAttenuationScale);
@@ -51,12 +50,12 @@ namespace UnityEditor.Rendering
         /// </summary>
         public override void OnInspectorGUI()
         {
-            SRPLensFlareOverride lensFlareDat = m_Intensity.serializedObject.targetObject as SRPLensFlareOverride;
+            LensFlareComponentSRP lensFlareData = m_Intensity.serializedObject.targetObject as LensFlareComponentSRP;
             bool attachedToLight = false;
             bool lightIsDirLight = false;
             Light light = null;
-            if (lensFlareDat != null &&
-                (light = lensFlareDat.GetComponent<Light>()) != null)
+            if (lensFlareData != null &&
+                (light = lensFlareData.GetComponent<Light>()) != null)
             {
                 attachedToLight = true;
                 if (light.type == LightType.Directional)
@@ -64,11 +63,11 @@ namespace UnityEditor.Rendering
             }
 
             EditorGUI.BeginChangeCheck();
-            ++EditorGUI.indentLevel;
-            EditorGUILayout.BeginFoldoutHeaderGroup(false, "     General", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(Styles.generalData.text, EditorStyles.boldLabel);
             {
                 EditorGUILayout.PropertyField(m_LensFlareData, Styles.lensFlareData);
                 EditorGUILayout.PropertyField(m_Intensity, Styles.intensity);
+                EditorGUILayout.PropertyField(m_Scale, Styles.scale);
                 if (!lightIsDirLight)
                 {
                     if (attachedToLight)
@@ -84,10 +83,7 @@ namespace UnityEditor.Rendering
                     EditorGUILayout.PropertyField(m_RadialScreenAttenuationCurve, Styles.radialScreenAttenuationCurve);
                 }
             }
-            EditorGUILayout.EndFoldoutHeaderGroup();
-            --EditorGUI.indentLevel;
-            ++EditorGUI.indentLevel;
-            EditorGUILayout.BeginFoldoutHeaderGroup(false, "     Occlusion", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(Styles.occlusionData.text, EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(m_UseOcclusion, Styles.enableOcclusion);
             if (m_UseOcclusion.boolValue)
             {
@@ -97,8 +93,6 @@ namespace UnityEditor.Rendering
                 --EditorGUI.indentLevel;
                 EditorGUILayout.PropertyField(m_OcclusionOffset, Styles.occlusionOffset);
             }
-            EditorGUILayout.EndFoldoutHeaderGroup();
-            --EditorGUI.indentLevel;
             EditorGUILayout.PropertyField(m_AllowOffScreen, Styles.allowOffScreen);
 
             if (EditorGUI.EndChangeCheck())
@@ -107,10 +101,14 @@ namespace UnityEditor.Rendering
             }
         }
 
-        sealed class Styles
+        static class Styles
         {
+            static public readonly GUIContent generalData = EditorGUIUtility.TrTextContent("General");
+            static public readonly GUIContent occlusionData = EditorGUIUtility.TrTextContent("Occlusion");
+
             static public readonly GUIContent lensFlareData = EditorGUIUtility.TrTextContent("Lens Flare Data", "Specifies the SRP Lens Flare Data asset this component uses.");
             static public readonly GUIContent intensity = EditorGUIUtility.TrTextContent("Intensity", "Sets the intensity of the lens flare.");
+            static public readonly GUIContent scale = EditorGUIUtility.TrTextContent("Scale", "Sets the scale of the lens flare.");
             static public readonly GUIContent maxAttenuationDistance = EditorGUIUtility.TrTextContent("Attenuation Distance", "Sets the distance, in world space, between the start and the end of the Distance Attenuation Curve.");
             static public readonly GUIContent distanceAttenuationCurve = EditorGUIUtility.TrTextContent("Attenuation Distance Curve", "Specifies the curve that reduces the effect of the lens flare  based on the distance between the GameObject this asset is attached to and the Camera.");
             static public readonly GUIContent maxAttenuationScale = EditorGUIUtility.TrTextContent("Scale Distance", "Sets the distance, in world space, between the start and the end of the Scale Attenuation Curve.");

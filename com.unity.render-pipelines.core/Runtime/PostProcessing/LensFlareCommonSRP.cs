@@ -3,20 +3,20 @@ namespace UnityEngine
     /// <summary>
     /// Common code for all Data-Driven Lens Flare used
     /// </summary>
-    public sealed class SRPLensFlareCommon
+    public sealed class LensFlareCommonSRP
     {
-        private static SRPLensFlareCommon m_Instance = null;
+        private static LensFlareCommonSRP m_Instance = null;
         private static readonly object m_Padlock = new object();
-        private static System.Collections.Generic.List<SRPLensFlareOverride> m_Data = new System.Collections.Generic.List<SRPLensFlareOverride>();
+        private static System.Collections.Generic.List<LensFlareComponentSRP> m_Data = new System.Collections.Generic.List<LensFlareComponentSRP>();
 
-        private SRPLensFlareCommon()
+        private LensFlareCommonSRP()
         {
         }
 
         /// <summary>
         /// Current unique instance
         /// </summary>
-        public static SRPLensFlareCommon Instance
+        public static LensFlareCommonSRP Instance
         {
             get
             {
@@ -26,7 +26,7 @@ namespace UnityEngine
                     {
                         if (m_Instance == null)
                         {
-                            m_Instance = new SRPLensFlareCommon();
+                            m_Instance = new LensFlareCommonSRP();
                         }
                     }
                 }
@@ -34,13 +34,13 @@ namespace UnityEngine
             }
         }
 
-        private System.Collections.Generic.List<SRPLensFlareOverride> Data { get { return SRPLensFlareCommon.m_Data; } }
+        private System.Collections.Generic.List<LensFlareComponentSRP> Data { get { return LensFlareCommonSRP.m_Data; } }
 
         /// <summary>
         /// Return the pool of Lens Flare added
         /// </summary>
         /// <returns>The Lens Flare Pool</returns>
-        public System.Collections.Generic.List<SRPLensFlareOverride> GetData()
+        public System.Collections.Generic.List<LensFlareComponentSRP> GetData()
         {
             return Data;
         }
@@ -58,9 +58,9 @@ namespace UnityEngine
         /// Add a new lens flare component on the pool.
         /// </summary>
         /// <param name="newData">The new data added</param>
-        public void AddData(SRPLensFlareOverride newData)
+        public void AddData(LensFlareComponentSRP newData)
         {
-            Debug.Assert(Instance == this, "SRPLensFlareCommon can have only one instance");
+            Debug.Assert(Instance == this, "LensFlareCommonSRP can have only one instance");
 
             if (!m_Data.Contains(newData))
             {
@@ -129,8 +129,10 @@ namespace UnityEngine
         /// <summary>
         /// Attenuation by Light Shape for Area Light with Tube Shape
         /// </summary>
-        /// <param name="forward">Forward Vector of Directional Light</param>
-        /// <param name="wo">Vector pointing to the eye</param>
+        /// <param name="lightPositionWS">World Space position of the Light</param>
+        /// <param name="lightSide">Vector pointing to the side (right or left) or the light</param>
+        /// <param name="lightWidth">Width (half extent) of the tube light</param>
+        /// <param name="cam">Camera rendering the Tube Light</param>
         /// <returns>Attenuation Factor</returns>
         static public float ShapeAttenuationAreaTubeLight(Vector3 lightPositionWS, Vector3 lightSide, float lightWidth, Camera cam)
         {
@@ -234,7 +236,7 @@ namespace UnityEngine
             else
             {
                 Vector2 pos = (rayOff.normalized * vLocalScreenRatio) * translationScale;
-                rotation -= Mathf.Rad2Deg * (Mathf.Atan2(pos.y, pos.x) + Mathf.PI * 0.5f);
+                rotation -= Mathf.Rad2Deg * Mathf.Atan2(pos.y, pos.x);
             }
             rotation *= Mathf.Deg2Rad;
             float localCos0 = Mathf.Cos(-rotation);
@@ -258,9 +260,11 @@ namespace UnityEngine
         /// <param name="cam">Camera</param>
         /// <param name="actualWidth">Width actually used for rendering after dynamic resolution and XR is applied.</param>
         /// <param name="actualHeight">Height actually used for rendering after dynamic resolution and XR is applied.</param>
+        /// <param name="usePanini">Set if use Panani Projection</param>
+        /// <param name="paniniDistance">Distance used for Panini projection</param>
+        /// <param name="paniniCropToFit">CropToFit parameter used for Panini projection</param>
         /// <param name="cmd">Command Buffer</param>
-        /// <param name="source">Source Render Target which contains the Color Buffer</param>
-        /// <param name="target">Target Render Target</param>
+        /// <param name="colorBuffer">Source Render Target which contains the Color Buffer</param>
         /// <param name="GetLensFlareLightAttenuation">Delegate to which return return the Attenuation of the light based on their shape which uses the functions ShapeAttenuation...(...), must reimplemented per SRP</param>
         /// <param name="_FlareTex">ShaderID for the FlareTex</param>
         /// <param name="_FlareColorValue">ShaderID for the FlareColor</param>
@@ -270,11 +274,13 @@ namespace UnityEngine
         /// <param name="_FlareData3">ShaderID for the FlareData3</param>
         /// <param name="_FlareData4">ShaderID for the FlareData4</param>
         /// <param name="_FlareData5">ShaderID for the FlareData5</param>
-        static public void DoLensFlareDataDrivenCommon(Material lensFlareShader, SRPLensFlareCommon lensFlares, Camera cam, float actualWidth, float actualHeight,
+        /// <param name="debugView">Debug View which setup black background to see only Lens Flare</param>
+        static public void DoLensFlareDataDrivenCommon(Material lensFlareShader, LensFlareCommonSRP lensFlares, Camera cam, float actualWidth, float actualHeight,
             bool usePanini, float paniniDistance, float paniniCropToFit,
-            Rendering.CommandBuffer cmd, Rendering.RenderTargetIdentifier source, Rendering.RenderTargetIdentifier target,
+            Rendering.CommandBuffer cmd,
+            Rendering.RenderTargetIdentifier colorBuffer,
             System.Func<Light, Camera, Vector3, float> GetLensFlareLightAttenuation,
-            int _FlareTex, int _FlareColorValue, int _FlareData0, int _FlareData1, int _FlareData2, int _FlareData3, int _FlareData4, int _FlareData5, bool skipCopy)
+            int _FlareTex, int _FlareColorValue, int _FlareData0, int _FlareData1, int _FlareData2, int _FlareData3, int _FlareData4, int _FlareData5, bool debugView)
         {
             Vector2 vScreenRatio;
 
@@ -285,23 +291,19 @@ namespace UnityEngine
             float screenRatio = screenSize.x / screenSize.y;
             vScreenRatio = new Vector2(screenRatio, 1.0f);
 
-            if (skipCopy)
+            Rendering.CoreUtils.SetRenderTarget(cmd, colorBuffer);
+            if (debugView)
             {
-                Rendering.CoreUtils.SetRenderTarget(cmd, target);
+                // Background pitch black to see only the Flares
                 cmd.ClearRenderTarget(false, true, Color.black);
             }
-            else
-            {
-                cmd.CopyTexture(source, target);
-                Rendering.CoreUtils.SetRenderTarget(cmd, target);
-            }
 
-            foreach (SRPLensFlareOverride comp in lensFlares.GetData())
+            foreach (LensFlareComponentSRP comp in lensFlares.GetData())
             {
                 if (comp == null)
                     continue;
 
-                SRPLensFlareData data = comp.lensFlareData;
+                LensFlareDataSRP data = comp.lensFlareData;
 
                 if (!comp.enabled ||
                     !comp.gameObject.activeSelf ||
@@ -327,9 +329,9 @@ namespace UnityEngine
                     positionWS = comp.transform.position;
                 }
                 viewportPos = cam.WorldToViewportPoint(positionWS);
-                if (usePanini)
+                if (usePanini && cam == Camera.main)
                 {
-                    viewportPos = DoPaniniProjection(viewportPos, (int)actualWidth, (int)actualHeight, cam.fieldOfView, paniniCropToFit, paniniDistance, true);
+                    viewportPos = DoPaniniProjection(viewportPos, actualWidth, actualHeight, cam.fieldOfView, paniniCropToFit, paniniDistance);
                 }
 
                 if (viewportPos.z < 0.0f)
@@ -377,7 +379,7 @@ namespace UnityEngine
                     cmd.DisableShaderKeyword("FLARE_OCCLUSION");
                 }
 
-                foreach (SRPLensFlareDataElement element in data.elements)
+                foreach (LensFlareDataElementSRP element in data.elements)
                 {
                     if (element == null ||
                         (element.lensFlareTexture == null && element.flareType == SRPLensFlareType.Image) ||
@@ -401,7 +403,7 @@ namespace UnityEngine
                     float elemAspectRatio = element.sizeXY.x / element.sizeXY.y;
                     float usedAspectRatio;
                     if (element.flareType == SRPLensFlareType.Image)
-                        usedAspectRatio = element.preserveAspectRatio ? (((float)texture.width) / ((float)texture.height)) : 1.0f;
+                        usedAspectRatio = element.preserveAspectRatio ? ((((float)texture.height) / (float)texture.width)) : 1.0f;
                     else
                         usedAspectRatio = 1.0f;
 
@@ -413,12 +415,23 @@ namespace UnityEngine
 
                     Vector2 elemSizeXY;
                     if (element.preserveAspectRatio)
-                        elemSizeXY = new Vector2(element.sizeXY.y / usedAspectRatio, element.sizeXY.y);
+                    {
+                        if (usedAspectRatio >= 1.0f)
+                        {
+                            elemSizeXY = new Vector2(element.sizeXY.x / usedAspectRatio, element.sizeXY.y);
+                        }
+                        else
+                        {
+                            elemSizeXY = new Vector2(element.sizeXY.x, element.sizeXY.y * usedAspectRatio);
+                        }
+                    }
                     else
+                    {
                         elemSizeXY = new Vector2(element.sizeXY.x, element.sizeXY.y);
+                    }
                     float scaleSize = 0.1f; // Arbitrary value
                     Vector2 size = new Vector2(elemSizeXY.x, elemSizeXY.y);
-                    float combinedScale = scaleByDistance * scaleSize * element.uniformScale;
+                    float combinedScale = scaleByDistance * scaleSize * element.uniformScale * comp.scale;
                     size *= combinedScale;
 
                     Vector4 gradientModulation = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -485,7 +498,7 @@ namespace UnityEngine
                     if (element.lensFlareTexture != null)
                         cmd.SetGlobalTexture(_FlareTex, element.lensFlareTexture);
 
-                    float usedGradientPosition = Mathf.Clamp01(element.edgeOffset - 1e-6f);
+                    float usedGradientPosition = Mathf.Clamp01((1.0f - element.edgeOffset) - 1e-6f);
                     if (element.flareType == SRPLensFlareType.Polygon)
                         usedGradientPosition = Mathf.Pow(usedGradientPosition + 1.0f, 5);
 
@@ -506,13 +519,13 @@ namespace UnityEngine
                         }
 
                         float localLerpValue = Mathf.Clamp01(distortionCurve.Evaluate(localRadius));
-                        return new Vector2(Mathf.Lerp(curSize.x, element.targetSizeDistortion.x * combinedScale, localLerpValue),
+                        return new Vector2(Mathf.Lerp(curSize.x, element.targetSizeDistortion.x * combinedScale / usedAspectRatio, localLerpValue),
                             Mathf.Lerp(curSize.y, element.targetSizeDistortion.y * combinedScale, localLerpValue));
                     }
 
                     float usedSDFRoundness = element.sdfRoundness;
 
-                    cmd.SetGlobalVector(_FlareData5, new Vector4(comp.allowOffScreen ? 1.0f : -1.0f, usedGradientPosition, Mathf.Exp(element.fallOff), 0.0f));
+                    cmd.SetGlobalVector(_FlareData5, new Vector4(comp.allowOffScreen ? 1.0f : -1.0f, usedGradientPosition, Mathf.Exp(Mathf.Lerp(0.0f, 4.0f, Mathf.Clamp01(1.0f - element.fallOff))), 0.0f));
                     if (element.flareType == SRPLensFlareType.Polygon)
                     {
                         float invSide = 1.0f / (float)element.sideCount;
@@ -602,7 +615,7 @@ namespace UnityEngine
                                     localSize = ComputeLocalSize(rayOff, rayOff0, localSize, element.distortionCurve);
                                 }
 
-                                localSize += localSize * ((new Vector2(usedAspectRatio, 1.0f)) * element.scaleVariation * RandomRange(-1.0f, 1.0f));
+                                localSize += localSize * (element.scaleVariation * RandomRange(-1.0f, 1.0f));
 
                                 Color randCol = element.colorGradient.Evaluate(RandomRange(0.0f, 1.0f));
 
@@ -665,9 +678,9 @@ namespace UnityEngine
         /// Remove a lens flare data which exist in the pool.
         /// </summary>
         /// <param name="data">The data which exist in the pool</param>
-        public void RemoveData(SRPLensFlareOverride data)
+        public void RemoveData(LensFlareComponentSRP data)
         {
-            Debug.Assert(Instance == this, "SRPLensFlareCommon can have only one instance");
+            Debug.Assert(Instance == this, "LensFlareCommonSRP can have only one instance");
 
             if (m_Data.Contains(data))
             {
@@ -676,31 +689,29 @@ namespace UnityEngine
         }
 
         #region Panini Projection
-        static Vector2 DoPaniniProjection(Vector2 screenPos, int actualWidth, int actualHeight, float fieldOfView, float paniniProjectionCropToFit, float paniniProjectionDistance, bool inverse)
+        static Vector2 DoPaniniProjection(Vector2 screenPos, float actualWidth, float actualHeight, float fieldOfView, float paniniProjectionCropToFit, float paniniProjectionDistance)
         {
-            float distance = paniniProjectionDistance;
             Vector2 viewExtents = CalcViewExtents(actualWidth, actualHeight, fieldOfView);
-            Vector2 cropExtents = Panini_Generic_Inv(viewExtents, distance);
+            Vector2 cropExtents = CalcCropExtents(actualWidth, actualHeight, fieldOfView, paniniProjectionDistance);
 
             float scaleX = cropExtents.x / viewExtents.x;
             float scaleY = cropExtents.y / viewExtents.y;
             float scaleF = Mathf.Min(scaleX, scaleY);
 
-            float paniniD = distance;
+            float paniniD = paniniProjectionDistance;
             float paniniS = Mathf.Lerp(1.0f, Mathf.Clamp01(scaleF), paniniProjectionCropToFit);
 
-            //if (!inverse)
-            //return Panini_UnitDistance(screenPos * viewExtents * paniniS) / (viewExtents);
-            //return Panini_UnitDistance(screenPos * viewExtents * paniniD) / (viewExtents * paniniS);
-            //else
-            //    return Panini_Generic_Inv(screenPos * viewExtents, paniniD) / (viewExtents * paniniS);
-            return Panini_Generic(screenPos * viewExtents * paniniS, paniniD) / (viewExtents * paniniD);
+            Vector2 pos = new Vector2(2.0f * screenPos.x - 1.0f, 2.0f * screenPos.y - 1.0f);
+
+            Vector2 projPos = Panini_Generic_Inv(pos * viewExtents, paniniD) / (viewExtents * paniniS);
+
+            return new Vector2(0.5f * projPos.x + 0.5f, 0.5f * projPos.y + 0.5f);
         }
 
-        static Vector2 CalcViewExtents(int actualWidth, int actualHeight, float fieldOfView)
+        static Vector2 CalcViewExtents(float actualWidth, float actualHeight, float fieldOfView)
         {
             float fovY = fieldOfView * Mathf.Deg2Rad;
-            float aspect = (float)actualWidth / (float)actualHeight;
+            float aspect = actualWidth / actualHeight;
 
             float viewExtY = Mathf.Tan(0.5f * fovY);
             float viewExtX = aspect * viewExtY;
@@ -708,52 +719,9 @@ namespace UnityEngine
             return new Vector2(viewExtX, viewExtY);
         }
 
-        static Vector2 Panini_UnitDistance(Vector2 view_pos)
+        static Vector2 CalcCropExtents(float actualWidth, float actualHeight, float fieldOfView, float d)
         {
-            // Given
-            //    S----------- E--X-------
-            //    |      ` .  /,´
-            //    |-- ---    Q
-            //  1 |       ,´/  `
-            //    |     ,´ /    ´
-            //    |   ,´  /      `
-            //    | ,´   /       .
-            //    O`    /        .
-            //    |    /         `
-            //    |   /         ´
-            //  1 |  /         ´
-            //    | /        ´
-            //    |/_  .  ´
-            //    P
-            //
-            // Have E
-            // Want to find X
-            //
-            // First apply tangent-secant theorem to find Q
-            //   PE*QE = SE*SE
-            //   QE = PE-PQ
-            //   PQ = PE-(SE*SE)/PE
-            //   Q = E*(PQ/PE)
-            // Then project Q to find X
-
-            const float d = 1.0f;
-            const float view_dist = 2.0f;
-            const float view_dist_sq = 4.0f;
-
-            float view_hyp = Mathf.Sqrt(view_pos.x * view_pos.x + view_dist_sq);
-
-            float cyl_hyp = view_hyp - (view_pos.x * view_pos.x) / view_hyp;
-            float cyl_hyp_frac = cyl_hyp / view_hyp;
-            float cyl_dist = view_dist * cyl_hyp_frac;
-
-            Vector2 cyl_pos = view_pos * cyl_hyp_frac;
-
-            return cyl_pos / (cyl_dist - d);
-        }
-
-        static Vector2 Panini_Generic(Vector2 view_pos, float d)
-        {
-            // Given
+            // given
             //    S----------- E--X-------
             //    |    `  ~.  /,´
             //    |-- ---    Q
@@ -772,24 +740,19 @@ namespace UnityEngine
             //    |         , ´
             //    +-    ´
             //
-            // Have E
-            // Want to find X
-            //
-            // First compute line-circle intersection to find Q
-            // Then project Q to find X
+            // have X
+            // want to find E
 
-            float view_dist = 1.0f + d;
-            float view_hyp_sq = view_pos.x * view_pos.x + view_dist * view_dist;
+            float viewDist = 1.0f + d;
 
-            float isect_D = view_pos.x * d;
-            float isect_discrim = view_hyp_sq - isect_D * isect_D;
+            Vector2 projPos = CalcViewExtents(actualWidth, actualHeight, fieldOfView);
+            float projHyp = Mathf.Sqrt(projPos.x * projPos.x + 1.0f);
 
-            float cyl_dist_minus_d = (-isect_D * view_pos.x + view_dist * Mathf.Sqrt(isect_discrim)) / view_hyp_sq;
-            float cyl_dist = cyl_dist_minus_d + d;
+            float cylDistMinusD = 1.0f / projHyp;
+            float cylDist = cylDistMinusD + d;
+            Vector2 cylPos = projPos * cylDistMinusD;
 
-            Vector2 cyl_pos = view_pos * (cyl_dist / view_dist);
-
-            return cyl_pos / (cyl_dist - d);
+            return cylPos * (viewDist / cylDist);
         }
 
         static Vector2 Panini_Generic_Inv(Vector2 projPos, float d)
@@ -816,12 +779,12 @@ namespace UnityEngine
             // have X
             // want to find E
 
-            float viewDist = 1f + d;
-            var projHyp = Mathf.Sqrt(projPos.x * projPos.x + 1f);
+            float viewDist = 1.0f + d;
+            float projHyp = Mathf.Sqrt(projPos.x * projPos.x + 1.0f);
 
-            float cylDistMinusD = 1f / projHyp;
+            float cylDistMinusD = 1.0f / projHyp;
             float cylDist = cylDistMinusD + d;
-            var cylPos = projPos * cylDistMinusD;
+            Vector2 cylPos = projPos * cylDistMinusD;
 
             return cylPos * (viewDist / cylDist);
         }

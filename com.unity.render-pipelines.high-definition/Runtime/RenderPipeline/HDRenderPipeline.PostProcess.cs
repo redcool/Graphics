@@ -2623,37 +2623,34 @@ namespace UnityEngine.Rendering.HighDefinition
         {
             public LensFlareParameters parameters;
             public TextureHandle source;
-            public TextureHandle destination;
             public HDCamera hdCamera;
         }
 
         TextureHandle LensFlareDataDrivenPass(RenderGraph renderGraph, HDCamera hdCamera, TextureHandle source)
         {
-            if (m_LensFlareFS && !SRPLensFlareCommon.Instance.IsEmpty())
+            if (m_LensFlareFS && !LensFlareCommonSRP.Instance.IsEmpty())
             {
                 using (var builder = renderGraph.AddRenderPass<LensFlareData>("Lens Flare", out var passData, ProfilingSampler.Get(HDProfileId.LensFlareDataDriven)))
                 {
-                    passData.source = builder.ReadTexture(source);
+                    passData.source = builder.WriteTexture(source);
                     passData.parameters = PrepareLensFlareParameters(hdCamera);
                     passData.hdCamera = hdCamera;
                     TextureHandle dest = GetPostprocessOutputHandle(renderGraph, "Lens Flare Destination");
-                    passData.destination = builder.WriteTexture(dest);
+                    //passData.destination = builder.WriteTexture(dest);
 
                     builder.SetRenderFunc(
                         (LensFlareData data, RenderGraphContext ctx) =>
                         {
-                            SRPLensFlareCommon.DoLensFlareDataDrivenCommon(
+                            LensFlareCommonSRP.DoLensFlareDataDrivenCommon(
                                 data.parameters.lensFlareShader, data.parameters.lensFlares, data.hdCamera.camera, (float)data.hdCamera.actualWidth, (float)data.hdCamera.actualHeight,
                                 data.parameters.usePanini, data.parameters.paniniDistance, data.parameters.paniniCropToFit,
-                                ctx.cmd, data.source, data.destination,
+                                ctx.cmd, data.source,
                                 // If you pass directly 'GetLensFlareLightAttenuation' that create alloc apparently to cast to System.Func
                                 // And here the lambda setup like that seem to not alloc anything.
                                 (a, b, c) => { return GetLensFlareLightAttenuation(a, b, c); },
                                 HDShaderIDs._FlareTex, HDShaderIDs._FlareColorValue,
                                 HDShaderIDs._FlareData0, HDShaderIDs._FlareData1, HDShaderIDs._FlareData2, HDShaderIDs._FlareData3, HDShaderIDs._FlareData4, HDShaderIDs._FlareData5, data.parameters.skipCopy);
                         });
-
-                    source = passData.destination;
 
                     PushFullScreenDebugTexture(renderGraph, source, FullScreenDebugMode.LensFlareDataDriven);
                 }
@@ -2665,7 +2662,7 @@ namespace UnityEngine.Rendering.HighDefinition
         struct LensFlareParameters
         {
             public Material lensFlareShader;
-            public SRPLensFlareCommon lensFlares;
+            public LensFlareCommonSRP lensFlares;
             public float paniniDistance;
             public float paniniCropToFit;
             public bool skipCopy;
@@ -2676,7 +2673,7 @@ namespace UnityEngine.Rendering.HighDefinition
         {
             LensFlareParameters parameters;
 
-            parameters.lensFlares = SRPLensFlareCommon.Instance;
+            parameters.lensFlares = LensFlareCommonSRP.Instance;
             parameters.lensFlareShader = m_LensFlareDataDrivenShader;
             parameters.skipCopy = m_CurrentDebugDisplaySettings.data.fullScreenDebugMode == FullScreenDebugMode.LensFlareDataDriven;
 
@@ -2706,30 +2703,30 @@ namespace UnityEngine.Rendering.HighDefinition
                 switch (hdLightData.type)
                 {
                     case HDLightType.Directional:
-                        return SRPLensFlareCommon.ShapeAttenuationDirLight(hdLightData.transform.forward, wo);
+                        return LensFlareCommonSRP.ShapeAttenuationDirLight(hdLightData.transform.forward, wo);
                     case HDLightType.Point:
                         // Do nothing point are omnidirectional for the Lens Flare
-                        return SRPLensFlareCommon.ShapeAttenuationPointLight();
+                        return LensFlareCommonSRP.ShapeAttenuationPointLight();
                     case HDLightType.Spot:
                         switch (hdLightData.spotLightShape)
                         {
                             case SpotLightShape.Cone:
-                                return SRPLensFlareCommon.ShapeAttenuationSpotConeLight(hdLightData.transform.forward, wo, light.spotAngle, hdLightData.innerSpotPercent01);
+                                return LensFlareCommonSRP.ShapeAttenuationSpotConeLight(hdLightData.transform.forward, wo, light.spotAngle, hdLightData.innerSpotPercent01);
                             case SpotLightShape.Box:
-                                return SRPLensFlareCommon.ShapeAttenuationSpotBoxLight(hdLightData.transform.forward, wo);
+                                return LensFlareCommonSRP.ShapeAttenuationSpotBoxLight(hdLightData.transform.forward, wo);
                             case SpotLightShape.Pyramid:
-                                return SRPLensFlareCommon.ShapeAttenuationSpotPyramidLight(hdLightData.transform.forward, wo);
+                                return LensFlareCommonSRP.ShapeAttenuationSpotPyramidLight(hdLightData.transform.forward, wo);
                             default: throw new Exception($"GetLensFlareLightAttenuation Unknown SpotLightShape: {typeof(SpotLightShape)}: {hdLightData.type}");
                         }
                     case HDLightType.Area:
                         switch (hdLightData.areaLightShape)
                         {
                             case AreaLightShape.Tube:
-                                return SRPLensFlareCommon.ShapeAttenuationAreaTubeLight(hdLightData.transform.position, hdLightData.transform.right, hdLightData.shapeWidth, cam);
+                                return LensFlareCommonSRP.ShapeAttenuationAreaTubeLight(hdLightData.transform.position, hdLightData.transform.right, hdLightData.shapeWidth, cam);
                             case AreaLightShape.Rectangle:
-                                return SRPLensFlareCommon.ShapeAttenuationAreaRectangleLight(hdLightData.transform.forward, wo);
+                                return LensFlareCommonSRP.ShapeAttenuationAreaRectangleLight(hdLightData.transform.forward, wo);
                             case AreaLightShape.Disc:
-                                return SRPLensFlareCommon.ShapeAttenuationAreaDiscLight(hdLightData.transform.forward, wo);
+                                return LensFlareCommonSRP.ShapeAttenuationAreaDiscLight(hdLightData.transform.forward, wo);
                             default: throw new Exception($"GetLensFlareLightAttenuation Unknown AreaLightShape {typeof(AreaLightShape)}: {hdLightData.type}");
                         }
                     default: throw new Exception($"GetLensFlareLightAttenuation HDLightType Unknown {typeof(HDLightType)}: {hdLightData.type}");

@@ -5,19 +5,19 @@ using UnityEditor;
 namespace UnityEngine
 {
     /// <summary>
-    /// Lens Flare Data-Driven which can but added on any GameObject: SRPLensFlareOverride allow the GameObject to emit a LensFlare
+    /// Data-Driven Lens Flare can be added on any gameobeject
     /// </summary>
     [ExecuteAlways]
-    [AddComponentMenu("Rendering/SRP Lens Flare Source Override")]
-    public sealed class SRPLensFlareOverride : MonoBehaviour
+    [AddComponentMenu("Rendering/Lens Flare (SRP)")]
+    public sealed class LensFlareComponentSRP : MonoBehaviour
     {
         [SerializeField]
-        private SRPLensFlareData m_LensFlareData = null;
+        private LensFlareDataSRP m_LensFlareData = null;
 
         /// <summary>
         /// Lens flare asset used on this component
         /// </summary>
-        public SRPLensFlareData lensFlareData
+        public LensFlareDataSRP lensFlareData
         {
             get
             {
@@ -68,7 +68,7 @@ namespace UnityEngine
         /// <summary>
         /// Radius around the light used to occlude the flare (value in world space)
         /// </summary>
-        [Min(0)]
+        [Min(0.0f)]
         public float occlusionRadius = 0.1f;
         /// <summary>
         /// Random Samples Count used inside the disk with 'occlusionRadius'
@@ -81,6 +81,11 @@ namespace UnityEngine
         /// </summary>
         public float occlusionOffset = 0.05f;
         /// <summary>
+        /// Global Scale
+        /// </summary>
+        [Min(0.0f)]
+        public float scale = 1.0f;
+        /// <summary>
         /// If allowOffScreen is true then If the lens flare is outside the screen we still emit the flare on screen
         /// </summary>
         public bool allowOffScreen = false;
@@ -91,9 +96,9 @@ namespace UnityEngine
         void OnEnable()
         {
             if (lensFlareData)
-                SRPLensFlareCommon.Instance.AddData(this);
+                LensFlareCommonSRP.Instance.AddData(this);
             else
-                SRPLensFlareCommon.Instance.RemoveData(this);
+                LensFlareCommonSRP.Instance.RemoveData(this);
         }
 
         /// <summary>
@@ -101,7 +106,7 @@ namespace UnityEngine
         /// </summary>
         void OnDisable()
         {
-            SRPLensFlareCommon.Instance.RemoveData(this);
+            LensFlareCommonSRP.Instance.RemoveData(this);
         }
 
         /// <summary>
@@ -111,11 +116,11 @@ namespace UnityEngine
         {
             if (lensFlareData != null)
             {
-                SRPLensFlareCommon.Instance.AddData(this);
+                LensFlareCommonSRP.Instance.AddData(this);
             }
             else
             {
-                SRPLensFlareCommon.Instance.RemoveData(this);
+                LensFlareCommonSRP.Instance.RemoveData(this);
             }
         }
 
