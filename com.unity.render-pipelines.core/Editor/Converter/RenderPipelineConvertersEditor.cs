@@ -27,6 +27,8 @@ class ConverterItemState
 
     // Status of the converted item, Pending, Warning, Error or Success
     internal Status status;
+
+    internal bool hasConverted = false;
 }
 
 // Each converter uses the active bool
@@ -45,6 +47,7 @@ class ConverterState
     public int warnings;
     public int errors;
     public int success;
+    internal int index;
 }
 
 [Serializable]
@@ -96,12 +99,12 @@ public class RenderPipelineConvertersEditor : EditorWindow
         kImgPending = CoreEditorStyles.iconPending;
 
         // This is the drop down choices.
-        m_Conversions = TypeCache.GetTypesDerivedFrom<RenderPipelineConversion>();
+        m_Conversions = TypeCache.GetTypesDerivedFrom<RenderPipelineConverterContainer>();
         for (int j = 0; j < m_Conversions.Count; j++)
         {
-            // Iterate over the converters
-            RenderPipelineConversion conversion = (RenderPipelineConversion)Activator.CreateInstance(m_Conversions[j]);
-            m_ConversionsChoices.Add(conversion.name);
+            // Iterate over the conversions
+            RenderPipelineConverterContainer converterContainer = (RenderPipelineConverterContainer)Activator.CreateInstance(m_Conversions[j]);
+            m_ConversionsChoices.Add(converterContainer.name);
         }
 
         var converters = TypeCache.GetTypesDerivedFrom<RenderPipelineConverter>();
@@ -118,7 +121,7 @@ public class RenderPipelineConvertersEditor : EditorWindow
                 isActive = true,
                 isInitialized = false,
                 items = null,
-                //hasWarnings = false
+                index = i,
             };
             m_ConverterStates.Add(converterState);
 
@@ -136,13 +139,13 @@ public class RenderPipelineConvertersEditor : EditorWindow
 
         // Adding the different conversions
         // Right now the .choices attribute is internal so we can not add it. This will be public in the future.
-        m_ConversionsDropdownField = rootVisualElement.Q<DropdownField>("conversionDropDown");
+        //m_ConversionsDropdownField = rootVisualElement.Q<DropdownField>("conversionDropDown");
         //m_ConversionsDropdownField.choices = conversionsChoices;
 
         // This is temp now to get the information filled in
-        RenderPipelineConversion conversion = (RenderPipelineConversion) Activator.CreateInstance(m_Conversions[0]);
-        rootVisualElement.Q<Label>("conversionName").text = conversion.name;
-        rootVisualElement.Q<TextElement>("conversionInfo").text = conversion.info;
+        RenderPipelineConverterContainer converterContainer = (RenderPipelineConverterContainer)Activator.CreateInstance(m_Conversions[0]);
+        rootVisualElement.Q<Label>("conversionName").text = converterContainer.name;
+        rootVisualElement.Q<TextElement>("conversionInfo").text = converterContainer.info;
 
         // Getting the scrollview where the converters should be added
         m_ScrollView = rootVisualElement.Q<ScrollView>("convertersScrollView");
@@ -150,7 +153,6 @@ public class RenderPipelineConvertersEditor : EditorWindow
         {
             // Making an item using the converterListAsset as a template.
             // Then adding the information needed for each converter
-            // Why do I need to create a new visual element here? MTT
             VisualElement item = new VisualElement();
             m_ConverterListAsset.CloneTree(item);
             var conv = m_CoreConvertersList[i];
@@ -234,6 +236,7 @@ public class RenderPipelineConvertersEditor : EditorWindow
                 isActive = active,
                 message = message,
                 status = status,
+                hasConverted = false,
             });
         }
 
@@ -256,7 +259,7 @@ public class RenderPipelineConvertersEditor : EditorWindow
             listView.ClearSelection();
 
             var state = m_ConverterStates[i];
-            if(state.isInitialized || !state.isEnabled || !state.isActive)
+            if (state.isInitialized || !state.isEnabled || !state.isActive)
                 continue;
 
             GetAndSetData(i);
@@ -325,7 +328,6 @@ public class RenderPipelineConvertersEditor : EditorWindow
                 };
                 listView.onSelectionChange += obj =>
                 {
-                    Debug.Log(listView.selectedIndex);
                     m_CoreConvertersList[id].OnClicked(listView.selectedIndex);
                 };
                 listView.unbindItem = (element, index) =>
@@ -343,10 +345,9 @@ public class RenderPipelineConvertersEditor : EditorWindow
 
     void AddToContextMenu(ContextualMenuPopulateEvent evt, int coreConverterIndex)
     {
-
-        var ve = (VisualElement) evt.target;
+        var ve = (VisualElement)evt.target;
         // Checking if this context menu should be enabled or not
-        var isActive = m_ConverterStates[coreConverterIndex].items[(int)ve.userData].isActive;
+        var isActive = m_ConverterStates[coreConverterIndex].items[(int)ve.userData].isActive && !m_ConverterStates[coreConverterIndex].items[(int)ve.userData].hasConverted;
 
         evt.menu.AppendAction("Run converter for this asset",
             e =>
@@ -356,82 +357,79 @@ public class RenderPipelineConvertersEditor : EditorWindow
             isActive ? DropdownMenuAction.AlwaysEnabled : DropdownMenuAction.AlwaysDisabled);
     }
 
-    void UpdateInfo(int stateIndex, RunConverterContext ctx)
+    void UpdateInfo(int stateIndex, RunItemContext ctx)
     {
-        var failedCount = ctx.failedCount;
-        var successCount = ctx.successfulCount;
-
-        // Get the pending amount
-        m_ConverterStates[stateIndex].pending =  m_ConverterStates[stateIndex].items.Count;
-
-        for (int i = 0; i < failedCount; i++)
+        if (ctx.didFail)
         {
-            var failedItem = ctx.GetFailedItemAtIndex(i);
-            // This put the error message onto the icon and also changes the icon to the fail one since there is binding going on in the background
-            m_ConverterStates[stateIndex].items[failedItem.index].message = failedItem.message;
-            m_ConverterStates[stateIndex].items[failedItem.index].status = Status.Error;
+            m_ConverterStates[stateIndex].items[ctx.item.index].message = ctx.info;
+            m_ConverterStates[stateIndex].items[ctx.item.index].status = Status.Error;
+            m_ConverterStates[stateIndex].errors++;
+        }
+        else
+        {
+            m_ConverterStates[stateIndex].items[ctx.item.index].status = Status.Success;
+            m_ConverterStates[stateIndex].success++;
         }
 
-        for (int i = 0; i < successCount; i++)
-        {
-            var successfulItem = ctx.GetSuccessfulItemAtIndex(i);
-            m_ConverterStates[stateIndex].items[successfulItem.index].status = Status.Success;
-        }
+        m_ConverterStates[stateIndex].pending--;
 
-        m_ConverterStates[stateIndex].success = successCount;
-        m_ConverterStates[stateIndex].pending -= failedCount;
-        m_ConverterStates[stateIndex].pending -= successCount;
-        m_ConverterStates[stateIndex].errors = failedCount;
+        // Making sure that this is set here so that if user is clicking Convert again it will not run again.
+        ctx.hasConverted = true;
 
         VisualElement child = m_ScrollView[stateIndex];
-        // Update the UI with the new values
         child.Q<ListView>("converterItems").Refresh();
     }
 
     void Convert(ClickEvent evt)
     {
-        for (int i = 0; i < m_ConverterStates.Count; ++i)
+        List<ConverterState> activeConverterStates = new List<ConverterState>();
+        // Get the names of the converters
+        // Get the amount of them
+        // Make the string "name x/y"
+
+        // Getting all the active converters to use in the cancelable progressbar
+        foreach (ConverterState state in m_ConverterStates)
         {
-            var state = m_ConverterStates[i];
             if (state.isActive && state.isInitialized)
             {
-                var itemCount = m_ItemsToConvert[i].Count;
-                var items = new List<ConverterItemInfo>(itemCount);
-                for (var j = 0; j < itemCount; j++)
-                {
-                    if (state.items[j].isActive)
-                    {
-                        items.Add(new ConverterItemInfo
-                        {
-                            index = j,
-                            descriptor = m_ItemsToConvert[i][j]
-                        });
-                    }
-                }
-
-                // Running the converter with the context
-                // in the converter step the converter adds if it failed to convert
-                var ctx = new RunConverterContext(items);
-                m_CoreConvertersList[i].OnRun(ctx);
-
-                UpdateInfo(i, ctx);
+                activeConverterStates.Add(state);
             }
+        }
+
+        int currentCount = 0;
+        int activeConvertersCount = activeConverterStates.Count;
+        foreach (ConverterState activeConverterState in activeConverterStates)
+        {
+            currentCount++;
+            var index = activeConverterState.index;
+            var converterName = m_CoreConvertersList[index].name;
+            var itemCount = m_ItemsToConvert[index].Count;
+            string progressTitle = $"{converterName}             Converter : {currentCount}/{activeConvertersCount}";
+            for (var j = 0; j < itemCount; j++)
+            {
+                if (activeConverterState.items[j].isActive)
+                {
+                    if (EditorUtility.DisplayCancelableProgressBar(progressTitle, string.Format("({0} of {1}) {2}", j, itemCount, m_ItemsToConvert[index][j].info), (float)j / (float)itemCount))
+                        break;
+                    ConvertIndex(index, j);
+                }
+            }
+            EditorUtility.ClearProgressBar();
         }
     }
 
     void ConvertIndex(int coreConverterIndex, int index)
     {
-        // Need to check if this index is active or not.
-        if (m_ConverterStates[coreConverterIndex].items[index].isActive)
+        if (!m_ConverterStates[coreConverterIndex].items[index].hasConverted)
         {
-            var item = new List<ConverterItemInfo>(1);
-            item.Add(new ConverterItemInfo
+            m_ConverterStates[coreConverterIndex].items[index].hasConverted = true;
+            var item = new ConverterItemInfo()
             {
                 index = index,
                 descriptor = m_ItemsToConvert[coreConverterIndex][index],
-            });
-            var ctx = new RunConverterContext(item);
-            m_CoreConvertersList[coreConverterIndex].OnRun(ctx);
+            };
+            var ctx = new RunItemContext(item);
+            m_CoreConvertersList[coreConverterIndex].OnRun(ref ctx);
             UpdateInfo(coreConverterIndex, ctx);
         }
     }
