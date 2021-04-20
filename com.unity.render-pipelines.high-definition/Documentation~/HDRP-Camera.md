@@ -37,12 +37,12 @@ The HDRP Camera shares many properties with the Unity's [standard Camera](https:
 | **Allow Dynamic Resolution**    | Enable the checkbox to make this Camera support dynamic resolution for buffers linked to it. |
 | **Fullscreen Passthrough**      | Enable the checkbox to make this Camera skip rendering settings and directly render in full screen. This is useful for video. |
 | **Custom Frame Settings**       | Enable the checkbox to override the default [Frame Settings](Frame-Settings.md) for this Camera. This exposes a new set of Frame Settings that you can use to change how this Camera renders the Scene. |
-| **Allow DLSS**                  | **NOTE: only available if the NVIDIA native package is enabled in the package manager**. <br/> Controls wether this camera can enable NVIDIA Deep Learning Super Sampling (DLSS). For DLSS to be available, it must be also enabled in the quality settings asset of HDRP. |
-| **- Use Custom Quality**        | Set the override for quality mode for DLSS. The original quality mode is specified in the quality settings asset of HDRP. |
-| **-- Performance Quality**      | Set the override for performance quality mode for DLSS. |
-| **- Use Custom Attributes**     | Set the override for DLSS attributes. The original attributes are specified in the quality settings asset of HDRP. |
-| **-- Use Optimal Settings**     | Set the override for DLSS optimal settings (automatic sharpness and dynamic resolution scale). |
-| **-- Sharpness**                | Set the override for DLSS sharpness. |
+| **Allow DLSS**                  | Controls whether this camera can use NVIDIA Deep Learning Super Sampling (DLSS). To use DLSS, enable the NVIDIA package (com.unity.modules.nvidia) in your Unity project and enable DLSS in your [HDRP Asset](HDRP-Asset.md). |
+| **- Use Custom Quality**        | Indicates whether this Camera overrides the DLSS quality mode specified in the [HDRP Asset](HDRP-Asset.md). If you enable this property, HDRP uses the below **Performance Quality** property. |
+| **-- Performance Quality**      | Specifies the performance quality mode override for performance quality mode for DLSS.The options are:<br/>&#8226; **Balanced**: - Balances performance with quality.<br/>&#8226; **MaxPerf**: - Fast performance, lower quality.<br/>&#8226; **MaxQuality**: - High quality, lower performance.<br/>&#8226; **UltraPerformance**: - Fastest performance, lowest quality.<br/>&#8226; **UltraQuality**: - Highest quality, lowest performance.<br/>This property only appears if you enable **Use Custom Quality**. |
+| **- Use Custom Attributes**     | Indicates whether this Camera overrides the DLSS attributes specified in the [HDRP Asset](HDRP-Asset.md). |
+| **-- Use Optimal Settings**     | Indicates whether to make DLSS control the sharpness and screen percentage automatically for this Camera.<br/>This property only appears if you enable **Use Custom Attributes**. |
+| **-- Sharpness**                | The pixel sharpness that the DLSS upscaler uses for this Camera.<br/>This property only appears if you enable **Use Custom Attributes**. |
 
 ### Physical Settings
 
