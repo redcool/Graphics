@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - Stereo Eye Index, Instance ID, and Vertex ID nodes added to the shadergraph library.
   - Added View Vector Node doc
   - Added custom interpolator thresholds on shadergraph project settings page.
+  - Added selection highlight and picking shader passes for URP target.
 
 ### Changed
 - Updated/corrected View Direction doc
