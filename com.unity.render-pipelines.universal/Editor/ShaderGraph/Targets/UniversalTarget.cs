@@ -398,6 +398,66 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
             // Custom Interpolator Support
             customInterpolators = CoreCustomInterpDescriptors.Common
         };
+
+        public static readonly PassDescriptor SceneSelection = new PassDescriptor()
+        {
+            // Definition
+            displayName = "SceneSelectionPass",
+            referenceName = "SHADERPASS_DEPTHONLY",
+            lightMode = "SceneSelectionPass",
+            useInPreview = true,
+
+            // Template
+            passTemplatePath = GenerationUtils.GetDefaultTemplatePath("PassMesh.template"),
+            sharedTemplateDirectories = UniversalTarget.kSharedTemplateDirectories,
+
+            // Port Mask
+            validVertexBlocks = CoreBlockMasks.Vertex,
+            validPixelBlocks = CoreBlockMasks.FragmentAlphaOnly,
+
+            // Fields
+            structs = CoreStructCollections.Default,
+            fieldDependencies = CoreFieldDependencies.Default,
+
+            // Conditional State
+            renderStates = CoreRenderStates.SceneSelection,
+            pragmas = CorePragmas.Instanced,
+            defines = CoreDefines.SceneSelection,
+            includes = CoreIncludes.SceneSelection,
+
+            // Custom Interpolator Support
+            customInterpolators = CoreCustomInterpDescriptors.Common
+        };
+
+        public static readonly PassDescriptor ScenePicking = new PassDescriptor()
+        {
+            // Definition
+            displayName = "ScenePickingPass",
+            referenceName = "SHADERPASS_DEPTHONLY",
+            lightMode = "Picking",
+            useInPreview = true,
+
+            // Template
+            passTemplatePath = GenerationUtils.GetDefaultTemplatePath("PassMesh.template"),
+            sharedTemplateDirectories = UniversalTarget.kSharedTemplateDirectories,
+
+            // Port Mask
+            validVertexBlocks = CoreBlockMasks.Vertex,
+            validPixelBlocks = CoreBlockMasks.FragmentAlphaOnly,
+
+            // Fields
+            structs = CoreStructCollections.Default,
+            fieldDependencies = CoreFieldDependencies.Default,
+
+            // Conditional State
+            renderStates = CoreRenderStates.ScenePicking,
+            pragmas = CorePragmas.Instanced,
+            defines = CoreDefines.ScenePicking,
+            includes = CoreIncludes.ScenePicking,
+
+            // Custom Interpolator Support
+            customInterpolators = CoreCustomInterpDescriptors.Common
+        };
     }
     #endregion
 
@@ -522,6 +582,17 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
             { RenderState.Blend(Blend.One, Blend.OneMinusSrcAlpha, Blend.One, Blend.OneMinusSrcAlpha), new FieldCondition(UniversalFields.BlendPremultiply, true) },
             { RenderState.Blend(Blend.One, Blend.One, Blend.One, Blend.One), new FieldCondition(UniversalFields.BlendAdd, true) },
             { RenderState.Blend(Blend.DstColor, Blend.Zero), new FieldCondition(UniversalFields.BlendMultiply, true) },
+        };
+
+        public static readonly RenderStateCollection SceneSelection = new RenderStateCollection
+        {
+            { RenderState.Cull(Cull.Off) },
+        };
+
+        public static readonly RenderStateCollection ScenePicking = new RenderStateCollection
+        {
+            { RenderState.Cull(Cull.Back), new FieldCondition(Fields.DoubleSided, false) },
+            { RenderState.Cull(Cull.Off), new FieldCondition(Fields.DoubleSided, true) },
         };
     }
     #endregion
@@ -676,6 +747,28 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
             { CorePostgraph },
             { kShadowCasterPass, IncludeLocation.Postgraph },
         };
+
+        public static readonly IncludeCollection SceneSelection = new IncludeCollection
+        {
+            // Pre-graph
+            { CorePregraph },
+            { ShaderGraphPregraph },
+
+            // Post-graph
+            { CorePostgraph },
+            { kDepthOnlyPass, IncludeLocation.Postgraph },
+        };
+
+        public static readonly IncludeCollection ScenePicking = new IncludeCollection
+        {
+            // Pre-graph
+            { CorePregraph },
+            { ShaderGraphPregraph },
+
+            // Post-graph
+            { CorePostgraph },
+            { kDepthOnlyPass, IncludeLocation.Postgraph },
+        };
     }
     #endregion
 
@@ -690,6 +783,14 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
         public static readonly DefineCollection UseFragmentFog = new DefineCollection()
         {
             {CoreKeywordDescriptors.UseFragmentFog, 1},
+        };
+        public static readonly DefineCollection SceneSelection = new DefineCollection
+        {
+            { CoreKeywordDescriptors.SceneSelectionPass, 1 },
+        };
+        public static readonly DefineCollection ScenePicking = new DefineCollection
+        {
+            { CoreKeywordDescriptors.ScenePickingPass, 1 },
         };
     }
     #endregion
@@ -876,6 +977,20 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
         {
             displayName = "UseFragmentFog",
             referenceName = "_FOG_FRAGMENT 1",
+            type = KeywordType.Boolean,
+        };
+
+        public static readonly KeywordDescriptor SceneSelectionPass = new KeywordDescriptor()
+        {
+            displayName = "Scene Selection Pass",
+            referenceName = "SCENESELECTIONPASS",
+            type = KeywordType.Boolean,
+        };
+
+        public static readonly KeywordDescriptor ScenePickingPass = new KeywordDescriptor()
+        {
+            displayName = "Scene Picking Pass",
+            referenceName = "SCENEPICKINGPASS",
             type = KeywordType.Boolean,
         };
     }
