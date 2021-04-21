@@ -135,6 +135,10 @@ namespace UnityEngine.Experimental.Rendering.Universal
 
         public override void Setup(ScriptableRenderContext context, ref RenderingData renderingData)
         {
+            // RTHandles in 2D renderer do not benefit from dynamic resizing.
+            // This forces RTHandles of final colour and depth target to have the same dimensions as the targets from GetTemporaryRT
+            RTHandles.ResetReferenceSize(renderingData.cameraData.cameraTargetDescriptor.width, renderingData.cameraData.cameraTargetDescriptor.height);
+
             ref CameraData cameraData = ref renderingData.cameraData;
             ref var cameraTargetDescriptor = ref cameraData.cameraTargetDescriptor;
             bool stackHasPostProcess = renderingData.postProcessingEnabled;
