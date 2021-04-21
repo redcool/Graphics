@@ -53,10 +53,10 @@ namespace UnityEditor.Rendering.Universal
                 new GUIContent("Use Pipeline Settings")
             };
 
-            public readonly GUIContent colorTemperature = new GUIContent("Temperature", "Specifies a temperature (in Kelvin) used to correlate a color for the Light. For reference, White is 6500K.");
-            public readonly GUIContent lightAppearance = new GUIContent("Light Appearance", "Specifies the mode for how this Light's color is calculated.");
-            public readonly GUIContent color = new GUIContent("Color", "Specifies the color this Light emits.");
-            public readonly GUIContent colorFilter = new GUIContent("Filter", "Specifies a color which tints the Light source.");
+            public static readonly GUIContent colorTemperature = new GUIContent("Temperature", "Specifies a temperature (in Kelvin) used to correlate a color for the Light. For reference, White is 6500K.");
+            public static readonly GUIContent lightAppearance = new GUIContent("Light Appearance", "Specifies the mode for how this Light's color is calculated.");
+            public static readonly GUIContent color = new GUIContent("Color", "Specifies the color this Light emits.");
+            public static readonly GUIContent colorFilter = new GUIContent("Filter", "Specifies a color which tints the Light source.");
         }
 
         public bool typeIsSame { get { return !serializedLight.settings.lightType.hasMultipleDifferentValues; } }
@@ -193,22 +193,22 @@ namespace UnityEditor.Rendering.Universal
                     // Use the color temperature bool to create a popup dropdown to choose between the two modes.
                     var colorTemperaturePopupValue = Convert.ToInt32(settings.useColorTemperature.boolValue);
                     var lightAppearanceOptions = new[] { "Color", "Filter and Temperature" };
-                    colorTemperaturePopupValue = EditorGUILayout.Popup(s_Styles.lightAppearance, colorTemperaturePopupValue, lightAppearanceOptions);
+                    colorTemperaturePopupValue = EditorGUILayout.Popup(Styles.lightAppearance, colorTemperaturePopupValue, lightAppearanceOptions);
                     settings.useColorTemperature.boolValue = Convert.ToBoolean(colorTemperaturePopupValue);
 
                     using (new EditorGUI.IndentLevelScope())
                     {
                         if (settings.useColorTemperature.boolValue)
                         {
-                            EditorGUILayout.PropertyField(settings.color, s_Styles.colorFilter);
-                            k_SliderWithTexture(s_Styles.colorTemperature, settings.colorTemperature, settings);
+                            EditorGUILayout.PropertyField(settings.color, Styles.colorFilter);
+                            k_SliderWithTexture(Styles.colorTemperature, settings.colorTemperature, settings);
                         }
                         else
-                            EditorGUILayout.PropertyField(settings.color, s_Styles.color);
+                            EditorGUILayout.PropertyField(settings.color, Styles.color);
                     }
                 }
                 else
-                    EditorGUILayout.PropertyField(settings.color, s_Styles.color);
+                    EditorGUILayout.PropertyField(settings.color, Styles.color);
             }
         }
 
