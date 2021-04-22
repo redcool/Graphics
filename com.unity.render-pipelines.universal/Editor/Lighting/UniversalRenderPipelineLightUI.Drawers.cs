@@ -16,7 +16,7 @@ namespace UnityEditor.Rendering.Universal
             Shadows = 1 << 4
         }
 
-        static readonly ExpandedState<Expandable, Light> k_ExpandedState = new (~-1, "URP");
+        static readonly ExpandedState<Expandable, Light> k_ExpandedState = new(~-1, "URP");
 
         public static readonly CED.IDrawer Inspector = CED.Group(
             CED.Conditional(
@@ -112,12 +112,10 @@ namespace UnityEditor.Rendering.Universal
 #if UNITY_2020_1_OR_NEWER
                     serializedLight.settings.DrawRange();
 #else
-                serializedLight.settings.DrawRange(false);
+                    serializedLight.settings.DrawRange(false);
 #endif
                 }
             }
-
-            
         }
 
         static void DrawRenderingContent(UniversalRenderPipelineSerializedLight serializedLight, Editor owner)
