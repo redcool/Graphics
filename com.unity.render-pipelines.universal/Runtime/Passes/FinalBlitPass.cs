@@ -47,7 +47,7 @@ namespace UnityEngine.Rendering.Universal.Internal
 
             if (m_Source == cameraData.renderer.cameraColorFrontBuffer)
             {
-                RTHandle m_Source = renderingData.cameraData.renderer.cameraColorTarget;
+                m_Source = renderingData.cameraData.renderer.cameraColorTarget;
             }
 
             bool isSceneViewCamera = cameraData.isSceneViewCamera;

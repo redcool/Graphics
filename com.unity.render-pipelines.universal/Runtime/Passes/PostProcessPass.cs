@@ -435,7 +435,17 @@ namespace UnityEngine.Rendering.Universal.Internal
 
             // Setup projection matrix for cmd.DrawMesh()
             cmd.SetGlobalMatrix(ShaderConstants._FullscreenProjMat, GL.GetGPUProjectionMatrix(Matrix4x4.identity, true));
-            cmd.SetGlobalVector(ShaderConstants._RTHandleScale, RTHandles.rtHandleProperties.rtHandleScale);
+
+            //Automatic resolve of MSAA targets results in a buffer that is completely filled in the right size.
+            //This means that we want to ignore the RTHandleScaling when we are actually using the resolved buffer as input
+            if(cameraData.cameraTargetDescriptor.msaaSamples == (int)MSAASamples.None)
+            {
+                cmd.SetGlobalVector(ShaderConstants._RTHandleScale, RTHandles.rtHandleProperties.rtHandleScale);
+            }
+            else
+            {
+                cmd.SetGlobalVector(ShaderConstants._RTHandleScale, Vector4.one);
+            }
 
             // Optional NaN killer before post-processing kicks in
             // stopNaN may be null on Adreno 3xx. It doesn't support full shader level 3.5, but SystemInfo.graphicsShaderLevel is 35.
@@ -528,6 +538,14 @@ namespace UnityEngine.Rendering.Universal.Internal
 
                 // Done with Uber, blit it
                 cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, GetSource());
+                if (!m_HasFinalPass && !m_ResolveToScreen)
+                {
+                    cmd.SetGlobalVector(ShaderConstants._RTHandleScale, Vector4.one);
+                }
+                else
+                {
+                    cmd.SetGlobalVector(ShaderConstants._RTHandleScale, RTHandles.rtHandleProperties.rtHandleScale);
+                }
 
                 var colorLoadAction = RenderBufferLoadAction.DontCare;
                 if (m_Destination.nameID == BuiltinRenderTextureType.CameraTarget && !cameraData.isDefaultViewport)
@@ -561,20 +579,11 @@ namespace UnityEngine.Rendering.Universal.Internal
                     bool yflip = isRenderToBackBufferTarget && SystemInfo.graphicsUVStartsAtTop;
                     Vector4 scaleBias = yflip ? new Vector4(1, -1, 0, 1) : new Vector4(1, 1, 0, 0);
                     cmd.SetGlobalVector(ShaderPropertyId.scaleBias, scaleBias);
-                    cmd.SetGlobalVector(ShaderPropertyId.rtHandleScale, RTHandles.rtHandleProperties.rtHandleScale);
                     cmd.DrawProcedural(Matrix4x4.identity, m_Materials.uber, 0, MeshTopology.Quads, 4, 1, null);
                 }
                 else
 #endif
                 {
-                    if (m_ResolveToScreen)
-                    {
-                        cmd.SetGlobalVector(ShaderConstants._RTHandleScale, RTHandles.rtHandleProperties.rtHandleScale);
-                    }
-                    else
-                    {
-                        cmd.SetGlobalVector(ShaderConstants._RTHandleScale, new Vector4(1.0f,1.0f,1.0f,1.0f));
-                    }
                     cmd.SetRenderTarget(cameraTarget, colorLoadAction, RenderBufferStoreAction.Store, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.DontCare);
                     cmd.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.identity);
                     
@@ -1332,14 +1341,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                 material.EnableKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
 
             cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, m_Source);
-            if (m_ResolveToScreen)
-            {
-                cmd.SetGlobalVector(ShaderConstants._RTHandleScale, RTHandles.rtHandleProperties.rtHandleScale);
-            }
-            else
-            {
-                cmd.SetGlobalVector(ShaderConstants._RTHandleScale, new Vector4(1.0f, 1.0f, 1.0f, 1.0f));
-            }
+            cmd.SetGlobalVector(ShaderConstants._RTHandleScale, Vector4.one);
 
             var colorLoadAction = cameraData.isDefaultViewport ? RenderBufferLoadAction.DontCare : RenderBufferLoadAction.Load;
 

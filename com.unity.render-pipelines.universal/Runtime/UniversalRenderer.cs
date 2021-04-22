@@ -578,10 +578,11 @@ namespace UnityEngine.Rendering.Universal
             {
                 Shader.SetGlobalTexture(Shader.PropertyToID(m_DepthTexture.name), SystemInfo.usesReversedZBuffer ? Texture2D.blackTexture : Texture2D.whiteTexture);
             }
-            else
+            else if (requiresDepthPrepass)
             {
                 Shader.SetGlobalTexture(Shader.PropertyToID(m_DepthTexture.name), m_DepthTexture);
             }
+            else if(!isSceneViewCamera) Shader.SetGlobalTexture(Shader.PropertyToID(m_DepthTexture.name), m_ActiveCameraAttachments.depth);
 
             if (renderingData.cameraData.requiresOpaqueTexture || renderPassInputs.requiresColorTexture)
             {
@@ -879,8 +880,7 @@ namespace UnityEngine.Rendering.Universal
                      SystemInfo.supportsMultisampledTextures != 0;
 #endif
 
-            if (m_CameraAttachments.color.rt.graphicsFormat != descriptor.graphicsFormat ||
-                m_CameraAttachments.color.isMSAAEnabled != bindMS)
+            if (m_CameraAttachments.color.rt.graphicsFormat != descriptor.graphicsFormat)
             {
                 m_ColorRTBufferSystem.ReleaseAll();
                 m_CameraAttachments.color = AllocColorRT(0, BufferedRTAllocator, 2, descriptor.graphicsFormat, (MSAASamples)descriptor.msaaSamples);
